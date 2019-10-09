@@ -1,11 +1,23 @@
 scala_binary(
     name = "main",
-    main_class = "coherence.Main",
     srcs = [
         "Main.scala",
-        "Protocol.scala",
-        "Helper.scala",
     ],
+    main_class = "coherence.Main",
+    deps = [
+        ":helper",
+        ":protocol",
+    ],
+)
+
+scala_library(
+    name = "protocol",
+    srcs = ["Protocol.scala"],
+)
+
+scala_library(
+    name = "helper",
+    srcs = ["Helper.scala"],
 )
 
 scala_repl(
