@@ -1,0 +1,2 @@
+#!/bin/sh
+mypy --html-report /tmp --pretty --strict --disallow-any-unimported --disallow-subclassing-any --disallow-any-expr --disallow-any-decorated --disallow-any-explicit --disallow-any-generics --disallow-untyped-calls --disallow-untyped-defs --disallow-incomplete-defs --check-untyped-defs --disallow-untyped-decorators --warn-redundant-casts --warn-unused-ignores --warn-return-any --warn-unreachable --strict-equality .
