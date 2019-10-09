@@ -2,9 +2,9 @@ scala_binary(
     name = "main",
     main_class = "coherence.Main",
     srcs = [
-        "main.scala",
-        "protocol.scala",
-        "helper.scala",
+        "Main.scala",
+        "Protocol.scala",
+        "Helper.scala",
     ],
 )
 
