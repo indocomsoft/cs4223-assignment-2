@@ -5,6 +5,6 @@ scala_library(
 
 scala_library(
     name = "lru_cache",
-    deps = [":cache_line"],
     srcs = ["LRUCache.scala"],
+    deps = [":cache_line"],
 )

@@ -1,5 +1,4 @@
-package coherence
-package cache
+package coherence.cache
 
 import scala.collection.mutable
 
