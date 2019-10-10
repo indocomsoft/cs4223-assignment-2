@@ -12,6 +12,6 @@ trait BusDelegate[Message] {
     * To be called by the bus when there is a complete message on the bus.
     */
   def onCompleteMessage(sender: BusDelegate[Message],
-                        address: Int,
+                        address: Long,
                         message: Message): Unit
 }

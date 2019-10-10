@@ -16,6 +16,7 @@ scala_library(
     srcs = [
         "BusDelegate.scala",
     ],
+    visibility = ["//visibility:public"],
     exports = [":message_metadata"],
     deps = [":message_metadata"],
 )
