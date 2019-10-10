@@ -25,7 +25,7 @@ object Main extends App {
             blockSize = blockSize
           )
         eitherInput match {
-          case Right(input) => Nil
+          case Right(input) => ???
           case Left(errorMessage) =>
             printUsage(errorMessage)
         }
