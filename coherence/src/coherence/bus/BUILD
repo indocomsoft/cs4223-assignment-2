@@ -1,35 +1,35 @@
 scala_library(
     name = "bus",
-    deps = [
-        ":device",
-    ],
     srcs = [
         "Bus.scala",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":bus_delegate",
+        ":message_metadata",
+        "//src/coherence/devices:device",
     ],
 )
 
 scala_library(
-    name = "device",
-    deps = [
-        ":message_metadata",
-    ],
+    name = "bus_delegate",
     srcs = [
-        "Device.scala",
+        "BusDelegate.scala",
     ],
-    exports = [
-        ":message_metadata",
-    ],
+    exports = [":message_metadata"],
+    deps = [":message_metadata"],
 )
 
 scala_library(
     name = "message_metadata",
+    srcs = [
+        "MessageMetadata.scala",
+    ],
+    visibility = ["//visibility:public"],
+    exports = [
+        "//src/coherence:unit",
+    ],
     deps = [
         "//src/coherence:unit",
     ],
-    exports =[
-        "//src/coherence:unit",
-    ],
-    srcs = [
-        "MessageMetadata.scala",
-    ]
 )

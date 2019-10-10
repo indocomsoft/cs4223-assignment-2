@@ -18,17 +18,21 @@ object Bus {
   *     (Refer to CMU lecture notes why this precaution is needed)
   */
 class Bus[Message] {
-  var maybeMessage: Option[Message] = None
+  /* Things to change every time we get to a new message */
+  private[this] var maybeMessageMetadata: Option[MessageMetadata[Message]] =
+    None
+  private[this] var currentBusDelegate: Option[BusDelegate[Message]] = None
 
-  private[this] val devices = mutable.Set[Device[Message]]()
-  private[this] val requests = mutable.Queue[Device[Message]]()
   private[this] var expires_in = 0
 
-  def addDevice(device: Device[Message]): Unit = {
+  private[this] val devices = mutable.Set[BusDelegate[Message]]()
+  private[this] val requests = mutable.Queue[BusDelegate[Message]]()
+
+  def addBusDelegate(device: BusDelegate[Message]): Unit = {
     devices.add(device)
   }
 
-  def requestAccess(device: Device[Message]): Unit = {
+  def requestAccess(device: BusDelegate[Message]): Unit = {
     requests.enqueue(device)
   }
 
@@ -42,11 +46,13 @@ class Bus[Message] {
   def cycle(): Unit = {
     if (expires_in > 0) expires_in -= 1
     if (expires_in == 0) {
-      maybeMessage match {
-        case Some(message) =>
+      (maybeMessageMetadata, currentBusDelegate) match {
+        case (Some(MessageMetadata(message, address, _)), Some(device)) =>
           // Send the message to everyone in the bus
-          devices.foreach(_.onCompleteMessage(message))
-        case None =>
+          devices.foreach(_.onCompleteMessage(device, address, message))
+          currentBusDelegate = None
+          maybeMessageMetadata = None
+        case _ =>
           ()
       }
       loadNewMessage()
@@ -54,10 +60,12 @@ class Bus[Message] {
   }
 
   private[this] def loadNewMessage(): Unit =
-    while (maybeMessage.isEmpty && requests.nonEmpty) {
-      requests.dequeue().message() match {
-        case Some(MessageMetadata(message, size)) =>
-          maybeMessage = Some(message)
+    while (maybeMessageMetadata.isEmpty && requests.nonEmpty) {
+      val device = requests.dequeue()
+      device.message() match {
+        case messageMetadata @ Some(MessageMetadata(_, _, size)) =>
+          maybeMessageMetadata = messageMetadata
+          currentBusDelegate = Some(device)
           expires_in = size.word * Bus.PerWordLatency
         case _ =>
           ()

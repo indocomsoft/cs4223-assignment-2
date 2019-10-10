@@ -1,6 +1,6 @@
 package coherence.bus
 
-trait Device[Message] {
+trait BusDelegate[Message] {
 
   /**
     * To be called by the bus after the device requests access.
@@ -11,5 +11,7 @@ trait Device[Message] {
   /**
     * To be called by the bus when there is a complete message on the bus.
     */
-  def onCompleteMessage(message: Message): Unit
+  def onCompleteMessage(sender: BusDelegate[Message],
+                        address: Int,
+                        message: Message): Unit
 }

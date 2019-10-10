@@ -22,8 +22,8 @@ scala_library(
 
 scala_library(
     name = "unit",
-    visibility = ["//visibility:public"],
     srcs = ["Unit.scala"],
+    visibility = ["//visibility:public"],
 )
 
 scala_repl(
