@@ -1,5 +1,5 @@
 package coherence.devices
 
 trait MemoryDelegate {
-  def memoryOpCompleted(op: MemoryOp, address: Long)
+  def memoryOpCompleted(op: MemoryOp)
 }

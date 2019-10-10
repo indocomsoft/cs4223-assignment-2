@@ -3,13 +3,13 @@ package coherence.devices
 import scala.io.Source
 
 object Processor {
-  def apply[Message](cache: Cache[Message],
-                     source: Source): Processor[Message] =
+  def apply[Message, State](cache: Cache[Message, State],
+                            source: Source): Processor[Message, State] =
     new Processor(cache, source.getLines().map(ProcessorOp(_)))
 }
 
-class Processor[Message](private[this] val cache: Cache[Message],
-                         private[this] val ops: Iterator[ProcessorOp])
+class Processor[Message, State](private[this] val cache: Cache[Message, State],
+                                private[this] val ops: Iterator[ProcessorOp])
     extends Device {
   private[this] var currentCycle: Long = 0
 

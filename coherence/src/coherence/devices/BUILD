@@ -43,6 +43,7 @@ scala_library(
     srcs = [
         "Processor.scala",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":cache",
         ":device",
@@ -58,14 +59,31 @@ scala_repl(
 scala_library(
     name = "cache",
     srcs = ["Cache.scala"],
+    visibility = ["//visibility:public"],
     exports = [
+        ":cache_op",
         ":device",
         ":memory_delegate",
         "//src/coherence/bus:bus_delegate",
+        "//src/coherence/cache:lru_cache",
     ],
     deps = [
+        ":cache_op",
         ":device",
         ":memory_delegate",
         "//src/coherence/bus:bus_delegate",
+        "//src/coherence/cache:lru_cache",
     ],
+)
+
+scala_library(
+    name = "cache_op",
+    srcs = ["CacheOp.scala"],
+)
+
+scala_library(
+    name = "cache_delegate",
+    srcs = ["CacheDelegate.scala"],
+    deps = [":cache_op"],
+    exports = [":cache_op"],
 )

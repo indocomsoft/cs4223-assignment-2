@@ -3,6 +3,6 @@ package coherence.devices
 sealed trait MemoryOp
 
 object MemoryOp {
-  case object Read extends MemoryOp
-  case object Write extends MemoryOp
+  case class Read(address: Long) extends MemoryOp
+  case class Write(address: Long) extends MemoryOp
 }

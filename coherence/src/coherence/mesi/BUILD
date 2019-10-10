@@ -13,5 +13,24 @@ scala_library(
     deps = [
         ":message",
         "//src/coherence/bus",
+        "//src/coherence/devices:processor",
     ],
+)
+
+scala_library(
+    name = "cache",
+    srcs = [
+        "Cache.scala",
+    ],
+    deps = [
+        ":state",
+        ":message",
+        "//src/coherence/cache:lru_cache",
+        "//src/coherence/devices:cache",
+    ],
+)
+
+scala_library(
+    name = "state",
+    srcs = ["State.scala"],
 )
