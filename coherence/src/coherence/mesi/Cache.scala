@@ -14,6 +14,8 @@ class Cache(cacheSize: Int,
   // Queue of addresses to flushOpt or flush
   private[this] var flushOptQueue = mutable.Queue[Long]()
   private[this] var flushQueue = mutable.Queue[Long]()
+  // A queue of message and address
+  private[this] var pendingMessages = mutable.Queue[(Message, Long)]()
 
   override def request(sender: CacheDelegate, op: CacheOp): Unit = {
     require(this.op.isEmpty)
@@ -21,32 +23,48 @@ class Cache(cacheSize: Int,
     op match {
       case CacheOp.Load(_) =>
         sets(setIndex).get(tag) match {
-          case Some(_) =>
-            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
-          case None =>
-            bus.requestAccess(this)
+          case None | Some(CacheLine(State.I)) =>
             this.op = Some(OpMetadata(sender, op, -1))
+            bus.requestAccess(this)
+            pendingMessages.enqueue((Message.BusRd(), op.address))
+          case Some(CacheLine(_)) =>
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
         }
+      // Do not wait and just write straight away under I and M
+      // Assuming that eviction to memory doesn't matter
+      // (Memory has a large write queue)
       case CacheOp.Store(_) =>
-        ???
+        sets(setIndex).get(tag) match {
+          case None | Some(CacheLine(State.I)) =>
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
+            bus.requestAccess(this)
+            pendingMessages.enqueue((Message.BusRdX(), op.address))
+          case Some(CacheLine(State.E)) =>
+            sets(setIndex).update(tag, CacheLine(State.M))
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
+          case Some(CacheLine(State.M)) =>
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
+          case Some(CacheLine(State.S)) =>
+            sets(setIndex).update(tag, CacheLine(State.M))
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
+            bus.requestAccess(this)
+            pendingMessages.enqueue((Message.BusUpgr(), op.address))
+        }
     }
   }
 
   override def message(): Option[MessageMetadata[Message]] =
-    this.op.flatMap {
-      case OpMetadata(_, CacheOp.Load(address), _) =>
-        Some(MessageMetadata(Message.BusRd(), address, 1))
-      case OpMetadata(_, CacheOp.Store(_), _) => ???
-      case _ =>
-        if (flushQueue.nonEmpty) {
-          val address = flushQueue.dequeue()
-          Some(MessageMetadata(Message.Flush(), address, blockSize))
-        } else if (flushOptQueue.nonEmpty) {
-          val address = flushOptQueue.dequeue()
-          Some(MessageMetadata(Message.FlushOpt(), address, blockSize))
-        } else {
-          None
-        }
+    if (pendingMessages.nonEmpty) {
+      val (message, address) = pendingMessages.dequeue()
+      Some(MessageMetadata(message, address, 1))
+    } else if (flushQueue.nonEmpty) {
+      val address = flushQueue.dequeue()
+      Some(MessageMetadata(Message.Flush(), address, blockSize))
+    } else if (flushOptQueue.nonEmpty) {
+      val address = flushOptQueue.dequeue()
+      Some(MessageMetadata(Message.FlushOpt(), address, blockSize))
+    } else {
+      None
     }
 
   override def onCompleteMessage(sender: BusDelegate[Message],

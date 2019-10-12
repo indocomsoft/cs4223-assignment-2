@@ -69,7 +69,7 @@ class Bus[Message] {
         case messageMetadata @ Some(MessageMetadata(_, _, size)) =>
           maybeMessageMetadata = messageMetadata
           currentBusDelegate = Some(device)
-          expires_in = size * Bus.PerWordLatency
+          expires_in = ((size - 1) / 8 + 1) * Bus.PerWordLatency
         case _ =>
           ()
       }
