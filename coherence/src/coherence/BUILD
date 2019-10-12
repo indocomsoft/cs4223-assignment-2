@@ -20,12 +20,6 @@ scala_library(
     srcs = ["Helper.scala"],
 )
 
-scala_library(
-    name = "unit",
-    srcs = ["Unit.scala"],
-    visibility = ["//visibility:public"],
-)
-
 scala_repl(
     name = "repl",
     deps = [":main"],

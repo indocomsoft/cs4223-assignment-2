@@ -11,6 +11,8 @@ class LRUCache[State](val capacity: Int) {
   private[this] val data =
     new mutable.LinkedHashMap[Int, CacheLine[State]]()
 
+  var numCacheMisses: Long = 0
+
   /**
     * Checks whether the given tag is located in this cache. Counts as a "use" in the LRU block replacement policy
     */
@@ -19,21 +21,25 @@ class LRUCache[State](val capacity: Int) {
       data.remove(tag).map(v => data.update(tag, v))
       data.get(tag)
     } else {
+      numCacheMisses += 1
       None
     }
 
   /**
-    * Adds a tag to the cache. If a cache line needs to be evicted, it is returned.
+    * Adds a tag to the cache if it doesn't exist, otherwise updates a tag.
+    * If a cache line needs to be evicted, it is returned.
     */
-  def add(tag: Int, cacheLine: CacheLine[State]): Option[CacheLine[State]] = {
+  def update(tag: Int,
+             cacheLine: CacheLine[State]): Option[CacheLine[State]] = {
     get(tag) match {
       case Some(_) => None
       case None =>
-        data.update(tag, cacheLine)
+        data.put(tag, cacheLine)
         data.headOption match {
           case Some((key, _)) if data.size > capacity => data.remove(key)
           case _                                      => None
         }
     }
   }
+
 }

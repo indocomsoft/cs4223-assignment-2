@@ -25,7 +25,6 @@ scala_library(
     deps = [
         ":message",
         ":state",
-        "//src/coherence:unit",
         "//src/coherence/cache:lru_cache",
         "//src/coherence/devices:cache",
     ],
@@ -34,4 +33,21 @@ scala_library(
 scala_library(
     name = "state",
     srcs = ["State.scala"],
+)
+
+scala_library(
+    name = "memory",
+    srcs = ["Memory.scala"],
+    exports = [
+        ":message",
+        ":state",
+        "//src/coherence/bus",
+        "//src/coherence/devices:memory",
+    ],
+    deps = [
+        ":message",
+        ":state",
+        "//src/coherence/bus",
+        "//src/coherence/devices:memory",
+    ],
 )

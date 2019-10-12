@@ -49,7 +49,10 @@ class Bus[Message] {
       (maybeMessageMetadata, currentBusDelegate) match {
         case (Some(MessageMetadata(message, address, _)), Some(device)) =>
           // Send the message to everyone in the bus
-          devices.foreach(_.onCompleteMessage(device, address, message))
+          var hasCopy = devices.map(_.hasCopy(address)).reduce(_ || _)
+          devices.foreach(
+            _.onCompleteMessage(device, address, message, hasCopy)
+          )
           currentBusDelegate = None
           maybeMessageMetadata = None
         case _ =>
@@ -66,7 +69,7 @@ class Bus[Message] {
         case messageMetadata @ Some(MessageMetadata(_, _, size)) =>
           maybeMessageMetadata = messageMetadata
           currentBusDelegate = Some(device)
-          expires_in = size.word * Bus.PerWordLatency
+          expires_in = size * Bus.PerWordLatency
         case _ =>
           ()
       }

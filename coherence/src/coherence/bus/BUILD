@@ -27,10 +27,4 @@ scala_library(
         "MessageMetadata.scala",
     ],
     visibility = ["//visibility:public"],
-    exports = [
-        "//src/coherence:unit",
-    ],
-    deps = [
-        "//src/coherence:unit",
-    ],
 )

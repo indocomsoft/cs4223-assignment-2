@@ -1,5 +1,6 @@
 package coherence.bus
 
-import coherence.Unit.Word
-
-case class MessageMetadata[Message](message: Message, address: Long, size: Word)
+/**
+  * @param size in bytes
+  */
+case class MessageMetadata[Message](message: Message, address: Long, size: Int)

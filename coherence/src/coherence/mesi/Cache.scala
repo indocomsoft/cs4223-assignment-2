@@ -1,42 +1,19 @@
 package coherence.mesi
 
 import coherence.bus.{Bus, BusDelegate, MessageMetadata}
-import coherence.devices.{
-  CacheDelegate,
-  CacheOp,
-  Memory,
-  MemoryOp,
-  Cache => CacheTrait
-}
-import coherence.Unit._
+import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
+import coherence.cache.CacheLine
+
+import scala.collection.mutable
 
 class Cache(cacheSize: Int,
             associativity: Int,
             blockSize: Int,
-            memory: Memory,
             bus: Bus[Message])
-    extends CacheTrait[State, Message](
-      cacheSize,
-      associativity,
-      blockSize,
-      memory,
-      bus
-    ) {
-  private[this] var currentCycle: Long = 0
-  // Long is finishedCycle, -1 if still pending
-  private[this] var op: Option[(CacheDelegate, CacheOp, Long)] = None
-
-  override def cycle(): Unit = {
-    currentCycle += 1
-    op match {
-      case Some((sender, op, finishedCycle)) if finishedCycle == currentCycle =>
-        sender.requestCompleted(op)
-      case _ =>
-        ()
-    }
-  }
-
-  override def memoryOpCompleted(op: MemoryOp): Unit = ???
+    extends CacheTrait[State, Message](cacheSize, associativity, blockSize, bus) {
+  // Queue of addresses to flushOpt or flush
+  private[this] var flushOptQueue = mutable.Queue[Long]()
+  private[this] var flushQueue = mutable.Queue[Long]()
 
   override def request(sender: CacheDelegate, op: CacheOp): Unit = {
     require(this.op.isEmpty)
@@ -44,11 +21,11 @@ class Cache(cacheSize: Int,
     op match {
       case CacheOp.Load(_) =>
         sets(setIndex).get(tag) match {
-          case Some(_) => this.op = Some((sender, op, currentCycle + 1))
+          case Some(_) =>
+            this.op = Some(OpMetadata(sender, op, currentCycle + 1))
           case None =>
-            memory.operate(this, MemoryOp.Read(op.address))
             bus.requestAccess(this)
-            this.op = Some((sender, op, -1))
+            this.op = Some(OpMetadata(sender, op, -1))
         }
       case CacheOp.Store(_) =>
         ???
@@ -56,14 +33,88 @@ class Cache(cacheSize: Int,
   }
 
   override def message(): Option[MessageMetadata[Message]] =
-    this.op.map {
-      case (_, CacheOp.Load(address), _) =>
-        MessageMetadata(Message.BusRd(), address, 1.word())
-      case (_, CacheOp.Store(_), _) => ???
+    this.op.flatMap {
+      case OpMetadata(_, CacheOp.Load(address), _) =>
+        Some(MessageMetadata(Message.BusRd(), address, 1))
+      case OpMetadata(_, CacheOp.Store(_), _) => ???
+      case _ =>
+        if (flushQueue.nonEmpty) {
+          val address = flushQueue.dequeue()
+          Some(MessageMetadata(Message.Flush(), address, blockSize))
+        } else if (flushOptQueue.nonEmpty) {
+          val address = flushOptQueue.dequeue()
+          Some(MessageMetadata(Message.FlushOpt(), address, blockSize))
+        } else {
+          None
+        }
     }
 
   override def onCompleteMessage(sender: BusDelegate[Message],
                                  address: Long,
-                                 message: Message): Unit = ???
+                                 message: Message,
+                                 shared: Boolean): Unit = {
+    if (sender.eq(this)) {
+      ()
+    } else {
+      val (tag, setIndex, _) = calculateAddress(address)
+      sets(setIndex).get(tag) match {
+        case Some(CacheLine(State.M)) =>
+          message match {
+            case Message.BusRd() =>
+              sets(setIndex).update(tag, CacheLine(State.S))
+              flushQueue.enqueue(address)
+            case Message.BusRdX() =>
+              sets(setIndex).update(tag, CacheLine(State.I))
+              flushQueue.enqueue(address)
+            case Message.FlushOpt() | Message.BusUpgr() | Message.Flush() =>
+              throw new RuntimeException(
+                s"Encountered $message on address whose state is M"
+              )
+          }
+        case Some(CacheLine(State.E)) =>
+          message match {
+            case Message.BusRd() =>
+              sets(setIndex).update(tag, CacheLine(State.S))
+              flushOptQueue.enqueue(address)
+            case Message.BusRdX() =>
+              sets(setIndex).update(tag, CacheLine(State.I))
+              flushOptQueue.enqueue(address)
+            case Message.FlushOpt() | Message.Flush() | Message.BusUpgr() =>
+              throw new RuntimeException(
+                s"Encountered $message on address whose state is E"
+              )
+          }
+        case Some(CacheLine(State.S)) =>
+          message match {
+            case Message.BusRd() =>
+              flushOptQueue.enqueue(address)
+            case Message.BusRdX() =>
+              sets(setIndex).update(tag, CacheLine(State.I))
+              flushOptQueue.enqueue(address)
+            case Message.BusUpgr() =>
+              sets(setIndex).update(tag, CacheLine(State.I))
+            case Message.FlushOpt() =>
+              flushOptQueue = flushOptQueue.filter(_ != address)
+            case Message.Flush() =>
+              throw new RuntimeException(
+                s"Encountered $message on address whose state is S"
+              )
+          }
+        case Some(CacheLine(State.I)) | None =>
+          (message, this.op) match {
+            case (
+                Message.FlushOpt() | Message.FlushOpt(),
+                Some(OpMetadata(sender, CacheOp.Load(loadAddress), -1))
+                ) if loadAddress == address =>
+              val state = if (shared) State.S else State.E
+              sets(setIndex).update(tag, CacheLine(state))
+              this.op = Some(
+                OpMetadata(sender, CacheOp.Load(loadAddress), currentCycle + 1)
+              )
+            case _ => ()
+          }
+      }
+    }
+  }
 
 }
