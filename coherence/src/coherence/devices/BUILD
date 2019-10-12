@@ -61,16 +61,22 @@ scala_library(
     srcs = ["Cache.scala"],
     visibility = ["//visibility:public"],
     exports = [
+        ":cache_delegate",
         ":cache_op",
         ":device",
+        ":memory",
         ":memory_delegate",
+        "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",
         "//src/coherence/cache:lru_cache",
     ],
     deps = [
+        ":cache_delegate",
         ":cache_op",
         ":device",
+        ":memory",
         ":memory_delegate",
+        "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",
         "//src/coherence/cache:lru_cache",
     ],
@@ -84,6 +90,6 @@ scala_library(
 scala_library(
     name = "cache_delegate",
     srcs = ["CacheDelegate.scala"],
-    deps = [":cache_op"],
     exports = [":cache_op"],
+    deps = [":cache_op"],
 )

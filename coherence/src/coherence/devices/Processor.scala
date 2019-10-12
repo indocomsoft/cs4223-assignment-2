@@ -10,10 +10,13 @@ object Processor {
 
 class Processor[Message, State](private[this] val cache: Cache[Message, State],
                                 private[this] val ops: Iterator[ProcessorOp])
-    extends Device {
+    extends CacheDelegate
+    with Device {
   private[this] var currentCycle: Long = 0
 
   override def cycle(): Unit = {
     currentCycle += 1
   }
+
+  override def requestCompleted(op: CacheOp): Unit = ???
 }

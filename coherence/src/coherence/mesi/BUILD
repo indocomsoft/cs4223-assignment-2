@@ -23,8 +23,9 @@ scala_library(
         "Cache.scala",
     ],
     deps = [
-        ":state",
         ":message",
+        ":state",
+        "//src/coherence:unit",
         "//src/coherence/cache:lru_cache",
         "//src/coherence/devices:cache",
     ],

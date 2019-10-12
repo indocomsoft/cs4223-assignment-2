@@ -14,26 +14,26 @@ class LRUCache[State](val capacity: Int) {
   /**
     * Checks whether the given tag is located in this cache. Counts as a "use" in the LRU block replacement policy
     */
-  def contains(tag: Int): Boolean =
+  def get(tag: Int): Option[CacheLine[State]] =
     if (data.contains(tag)) {
       data.remove(tag).map(v => data.update(tag, v))
-      true
+      data.get(tag)
     } else {
-      false
+      None
     }
 
   /**
     * Adds a tag to the cache. If a cache line needs to be evicted, it is returned.
     */
-  def add(tag: Int, state: State, valid: Boolean): Option[CacheLine[State]] = {
-    if (contains(tag)) {
-      None
-    } else {
-      data.update(tag, CacheLine(state, valid))
-      data.headOption match {
-        case Some((key, _)) if data.size > capacity => data.remove(key)
-        case _                                      => None
-      }
+  def add(tag: Int, cacheLine: CacheLine[State]): Option[CacheLine[State]] = {
+    get(tag) match {
+      case Some(_) => None
+      case None =>
+        data.update(tag, cacheLine)
+        data.headOption match {
+          case Some((key, _)) if data.size > capacity => data.remove(key)
+          case _                                      => None
+        }
     }
   }
 }
