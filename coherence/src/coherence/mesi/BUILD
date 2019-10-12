@@ -11,7 +11,9 @@ scala_library(
         "Simulator.scala",
     ],
     deps = [
+        ":cache",
         ":message",
+        ":memory",
         "//src/coherence/bus",
         "//src/coherence/devices:processor",
     ],

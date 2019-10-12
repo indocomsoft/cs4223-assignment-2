@@ -3,8 +3,8 @@ package coherence.devices
 import scala.io.Source
 
 object Processor {
-  def apply[Message, State](cache: Cache[Message, State],
-                            source: Source): Processor[Message, State] =
+  def apply[State, Message](cache: Cache[State, Message],
+                            source: Source): Processor[State, Message] =
     new Processor(cache, source.getLines().map(ProcessorOp(_)))
 
   sealed trait Status
@@ -16,7 +16,7 @@ object Processor {
   }
 }
 
-class Processor[Message, State](private[this] val cache: Cache[Message, State],
+class Processor[Message, State](val cache: Cache[Message, State],
                                 private[this] val ops: Iterator[ProcessorOp])
     extends CacheDelegate
     with Device {
