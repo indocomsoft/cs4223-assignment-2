@@ -27,12 +27,23 @@ class Simulator(sources: List[Source],
   private[this] val bus: Bus[Message] = new Bus[Message]()
   private[this] val memory: Memory = new Memory(bus, blockSize)
   private[this] val caches: Array[Cache] =
-    (0 until Simulator.NumProcessors).map { _ =>
-      new Cache(cacheSize, associativity, blockSize, bus)
+    (0 until Simulator.NumProcessors).map { id =>
+      new Cache(id, cacheSize, associativity, blockSize, bus)
     }.toArray
   private[this] val processors: Array[Processor[State, Message]] =
     caches
       .zip(sources)
-      .map { case (cache, source) => Processor(cache, source) }
+      .map { case (cache, source) => Processor(cache.id, cache, source) }
       .toArray
+
+  def run(): Unit = {
+    var currentCycle = 0
+    while (processors.exists(!_.isFinished())) {
+      currentCycle += 1
+      println(currentCycle)
+      bus.cycle()
+      processors.foreach(_.cycle())
+      memory.cycle()
+    }
+  }
 }

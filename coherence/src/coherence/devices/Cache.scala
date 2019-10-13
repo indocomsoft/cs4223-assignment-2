@@ -3,9 +3,12 @@ package coherence.devices
 import coherence.bus.{Bus, BusDelegate}
 import coherence.cache.LRUCache
 
-import scala.collection.mutable
+object Cache {
+  val HitLatency = 1
+}
 
-abstract class Cache[State, Message](cacheSize: Int,
+abstract class Cache[State, Message](val id: Int,
+                                     cacheSize: Int,
                                      associativity: Int,
                                      blockSize: Int,
                                      val bus: Bus[Message])
@@ -36,11 +39,20 @@ abstract class Cache[State, Message](cacheSize: Int,
     currentCycle += 1
     op match {
       case Some(OpMetadata(sender, op, finishedCycle))
-          if finishedCycle == currentCycle =>
+          if finishedCycle != -1 && currentCycle > finishedCycle =>
         sender.requestCompleted(op)
+        this.op = None
       case _ =>
         ()
     }
+    debug
+  }
+
+  private[this] def debug: Unit = op match {
+    case Some(opm @ OpMetadata(_, op, _)) =>
+      val (tag, setIndex, _) = calculateAddress(op.address)
+      println(s"Cache $id: tag $tag, setIndex $setIndex, op $opm")
+    case v @ None => println(s"Cache $id: op $v")
   }
 
   /**
@@ -55,8 +67,5 @@ abstract class Cache[State, Message](cacheSize: Int,
     (tmp.toInt, setIndex.toInt, offset.toInt)
   }
 
-  override def hasCopy(address: Long): Boolean = {
-    val (tag, setIndex, _) = calculateAddress(address)
-    sets(setIndex).get(tag).isDefined
-  }
+  override def toString: String = s"Cache $id"
 }

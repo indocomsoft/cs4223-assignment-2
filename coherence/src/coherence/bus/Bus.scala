@@ -44,15 +44,16 @@ class Bus[Message] {
     *   and ask it for a message
     */
   def cycle(): Unit = {
+    println("Bus cycle")
     if (expires_in > 0) expires_in -= 1
     if (expires_in == 0) {
       (maybeMessageMetadata, currentBusDelegate) match {
         case (Some(MessageMetadata(message, address, _)), Some(device)) =>
-          // Send the message to everyone in the bus
-          var hasCopy = devices.map(_.hasCopy(address)).reduce(_ || _)
-          devices.foreach(
-            _.onCompleteMessage(device, address, message, hasCopy)
+          println(
+            s"Bus message: $message at address $address from device $device"
           )
+          // Send the message to everyone in the bus
+          devices.foreach(_.onCompleteMessage(device, address, message))
           currentBusDelegate = None
           maybeMessageMetadata = None
         case _ =>
@@ -61,6 +62,9 @@ class Bus[Message] {
       loadNewMessage()
     }
   }
+
+  def isShared(address: Long): Boolean =
+    devices.map(_.hasCopy(address)).reduce(_ || _)
 
   private[this] def loadNewMessage(): Unit =
     while (maybeMessageMetadata.isEmpty && requests.nonEmpty) {

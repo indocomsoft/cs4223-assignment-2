@@ -26,18 +26,20 @@ class Memory(bus: Bus[Message], blockSize: Int)
     if (flushOptQueue.nonEmpty) bus.requestAccess(this)
   }
 
-  override def message(): Option[MessageMetadata[Message]] =
-    if (flushOptQueue.nonEmpty) {
+  override def message(): Option[MessageMetadata[Message]] = {
+    var maybeAddress: Option[Long] = None
+    while (flushOptQueue.nonEmpty && maybeAddress.isEmpty) {
       val address = flushOptQueue.dequeue()
-      Some(MessageMetadata(Message.FlushOpt(), address, blockSize))
-    } else {
-      None
+      if (!bus.isShared(address)) maybeAddress = Some(address)
     }
+    maybeAddress.map { address =>
+      MessageMetadata(Message.FlushOpt(), address, blockSize)
+    }
+  }
 
   override def onCompleteMessage(sender: BusDelegate[Message],
                                  address: Long,
-                                 message: Message,
-                                 shared: Boolean): Unit = {
+                                 message: Message): Unit = {
     if (sender.eq(this)) {
       ()
     } else {

@@ -25,16 +25,18 @@ class LRUCache[State](val capacity: Int) {
       None
     }
 
+  def immutableGet(tag: Int): Option[CacheLine[State]] = data.get(tag)
+
   /**
     * Adds a tag to the cache if it doesn't exist, otherwise updates a tag.
     * If a cache line needs to be evicted, it is returned.
     */
   def update(tag: Int,
              cacheLine: CacheLine[State]): Option[CacheLine[State]] = {
+    data.update(tag, cacheLine)
     get(tag) match {
       case Some(_) => None
       case None =>
-        data.put(tag, cacheLine)
         data.headOption match {
           case Some((key, _)) if data.size > capacity => data.remove(key)
           case _                                      => None

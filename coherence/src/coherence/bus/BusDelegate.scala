@@ -13,8 +13,7 @@ trait BusDelegate[Message] {
     */
   def onCompleteMessage(sender: BusDelegate[Message],
                         address: Long,
-                        message: Message,
-                        shared: Boolean): Unit
+                        message: Message): Unit
 
   /**
     * To be called by the bus to update the "SHARED" OR line

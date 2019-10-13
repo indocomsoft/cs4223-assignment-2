@@ -17,6 +17,7 @@ scala_library(
         "//src/coherence/bus",
         "//src/coherence/devices:processor",
     ],
+    visibility = ["//visibility:public"],
 )
 
 scala_library(
@@ -26,6 +27,7 @@ scala_library(
     ],
     deps = [
         ":message",
+        ":memory",
         ":state",
         "//src/coherence/cache:lru_cache",
         "//src/coherence/devices:cache",

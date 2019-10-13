@@ -1,0 +1,2 @@
+#!/bin/sh
+bazel run --run_under="cd $PWD &&" //src/coherence:main "$@"
