@@ -10,14 +10,14 @@ scala_library(
     srcs = [
         "Simulator.scala",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":cache",
-        ":message",
         ":memory",
+        ":message",
         "//src/coherence/bus",
         "//src/coherence/devices:processor",
     ],
-    visibility = ["//visibility:public"],
 )
 
 scala_library(
@@ -26,8 +26,8 @@ scala_library(
         "Cache.scala",
     ],
     deps = [
-        ":message",
         ":memory",
+        ":message",
         ":state",
         "//src/coherence/cache:lru_cache",
         "//src/coherence/devices:cache",
@@ -44,14 +44,23 @@ scala_library(
     srcs = ["Memory.scala"],
     exports = [
         ":message",
+        ":reply",
         ":state",
+        "//src/coherence:address",
         "//src/coherence/bus",
         "//src/coherence/devices:memory",
     ],
     deps = [
         ":message",
+        ":reply",
         ":state",
+        "//src/coherence:address",
         "//src/coherence/bus",
         "//src/coherence/devices:memory",
     ],
+)
+
+scala_library(
+    name = "reply",
+    srcs = ["Reply.scala"],
 )

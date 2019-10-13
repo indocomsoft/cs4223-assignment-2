@@ -1,81 +1,169 @@
 package coherence.bus
 
+import coherence.Address
+
+import scala.collection.immutable.Queue
 import scala.collection.mutable
 
 object Bus {
   val PerWordLatency = 2
 }
 
-/**
-  * How the bus works:
-  * - Simulator will call `cycle()` at each cycle
-  * - Inside cycle:
-  *   - If there is one complete message, it will be delivered to each device
-  *   - Afterwards, look at the queue of access requests, and get the message
-  *     from the device at the head of the queue, and set-up the countdown again
-  *   - The idea here is to allow each device to update their state from the message
-  *     before asking one of them for their message.
-  *     (Refer to CMU lecture notes why this precaution is needed)
-  */
-class Bus[Message] {
-  /* Things to change every time we get to a new message */
-  private[this] var maybeMessageMetadata: Option[MessageMetadata[Message]] =
-    None
-  private[this] var currentBusDelegate: Option[BusDelegate[Message]] = None
+class Bus[Message, Reply] {
+  sealed trait BusState
+  sealed trait Active {
+    val messageMetadata: MessageMetadata[Message]
+    val sender: BusDelegate[Message, Reply]
+  }
+  sealed trait AfterRequestSent {
+    val replied: Set[BusDelegate[Message, Reply]]
+  }
+  sealed trait ToSend {
+    val finishedCycle: Long
+  }
 
-  private[this] var expires_in = 0
+  object BusState {
+    case class Ready() extends BusState
+    case class RequestReceived(messageMetadata: MessageMetadata[Message],
+                               sender: BusDelegate[Message, Reply],
+                               finishedCycle: Long)
+        extends BusState
+        with Active
+        with ToSend
+    case class WaitingForReply(messageMetadata: MessageMetadata[Message],
+                               sender: BusDelegate[Message, Reply],
+                               replied: Set[BusDelegate[Message, Reply]])
+        extends BusState
+        with Active
+        with AfterRequestSent
+    case class ReplyReceived(
+      messageMetadata: MessageMetadata[Message],
+      sender: BusDelegate[Message, Reply],
+      replied: Set[BusDelegate[Message, Reply]],
+      replies: Queue[(ReplyMetadata[Reply], BusDelegate[Message, Reply])],
+      activeReply: (Reply, BusDelegate[Message, Reply]),
+      finishedCycle: Long
+    ) extends BusState
+        with Active
+        with AfterRequestSent
+        with ToSend
+  }
 
-  private[this] val devices = mutable.Set[BusDelegate[Message]]()
-  private[this] val requests = mutable.Queue[BusDelegate[Message]]()
+  private[this] var state: BusState = BusState.Ready()
 
-  def addBusDelegate(device: BusDelegate[Message]): Unit = {
+  private[this] var currentCycle: Long = 0
+
+  private[this] val devices = mutable.Set[BusDelegate[Message, Reply]]()
+  private[this] val requests = mutable.Queue[BusDelegate[Message, Reply]]()
+
+  def addBusDelegate(device: BusDelegate[Message, Reply]): Unit = {
     devices.add(device)
   }
 
-  def requestAccess(device: BusDelegate[Message]): Unit = {
+  def requestAccess(device: BusDelegate[Message, Reply]): Unit = {
     requests.enqueue(device)
   }
 
-  /**
-    * Performs a cycle:
-    * - Decrease the `expires_in` counter
-    * - Broadcast the message if there is one and the deadline expired.
-    * - Otherwise, if there is no message, dequeue a device who has requested access,
-    *   and ask it for a message
-    */
+  def reply(device: BusDelegate[Message, Reply],
+            replyMetadata: ReplyMetadata[Reply]): Unit = state match {
+    case BusState.WaitingForReply(messageMetadata, sender, replied) =>
+      val numWords = (replyMetadata.size - 1) / 8 + 1
+      state = BusState.ReplyReceived(
+        messageMetadata,
+        sender,
+        replied + device,
+        Queue(),
+        (replyMetadata.reply, device),
+        currentCycle + numWords * Bus.PerWordLatency
+      )
+    case BusState.ReplyReceived(
+        messageMetadata,
+        sender,
+        replied,
+        replies,
+        activeReply,
+        finishedCycle
+        ) =>
+      state = BusState.ReplyReceived(
+        messageMetadata,
+        sender,
+        replied + device,
+        replies.enqueue((replyMetadata, device)),
+        activeReply,
+        finishedCycle
+      )
+    case BusState.Ready() | BusState.RequestReceived(_, _, _) =>
+      throw new RuntimeException(
+        s"Bus: Unexpected call to reply during state $state"
+      )
+  }
+
   def cycle(): Unit = {
     println("Bus cycle")
-    if (expires_in > 0) expires_in -= 1
-    if (expires_in == 0) {
-      (maybeMessageMetadata, currentBusDelegate) match {
-        case (Some(MessageMetadata(message, address, _)), Some(device)) =>
-          println(
-            s"Bus message: $message at address $address from device $device"
+    currentCycle += 1
+    state match {
+      case BusState.RequestReceived(
+          messageMetadata @ MessageMetadata(message, address),
+          sender,
+          finishedCycle
+          ) =>
+        if (currentCycle == finishedCycle) {
+          state = BusState.WaitingForReply(messageMetadata, sender, Set())
+          (devices - sender).foreach(
+            _.onCompleteMessage(sender, address, message)
           )
-          // Send the message to everyone in the bus
-          devices.foreach(_.onCompleteMessage(device, address, message))
-          currentBusDelegate = None
-          maybeMessageMetadata = None
-        case _ =>
-          ()
-      }
-      loadNewMessage()
+        }
+      case BusState.ReplyReceived(
+          messageMetadata @ MessageMetadata(_, address),
+          sender,
+          replied,
+          replies,
+          (reply, device),
+          finishedCycle
+          ) =>
+        if (currentCycle == finishedCycle) {
+          (devices - sender - device).foreach(_.onReply(device, address, reply))
+          if (replies.isEmpty) {
+            if (replied.size + 1 == devices.size) {
+              // All have replied and no more replies to send
+              state = BusState.Ready()
+              loadNewRequest()
+            } else {
+              // Some still yet to reply
+              state = BusState.WaitingForReply(messageMetadata, sender, replied)
+            }
+          } else {
+            // We've some replies pending to be sent
+            val ((ReplyMetadata(reply, size), device), newReplies) =
+              replies.dequeue
+            val numWords = (size - 1) / 8 + 1
+            state = BusState.ReplyReceived(
+              messageMetadata,
+              sender,
+              replied,
+              newReplies,
+              (reply, device),
+              currentCycle + numWords * Bus.PerWordLatency
+            )
+          }
+        }
+      case BusState.WaitingForReply(_, _, _) => ()
+      case BusState.Ready()                  => loadNewRequest()
     }
   }
 
-  def isShared(address: Long): Boolean =
-    devices.map(_.hasCopy(address)).reduce(_ || _)
-
-  private[this] def loadNewMessage(): Unit =
-    while (maybeMessageMetadata.isEmpty && requests.nonEmpty) {
+  private[this] def loadNewRequest(): Unit = {
+    if (requests.nonEmpty) {
       val device = requests.dequeue()
-      device.message() match {
-        case messageMetadata @ Some(MessageMetadata(_, _, size)) =>
-          maybeMessageMetadata = messageMetadata
-          currentBusDelegate = Some(device)
-          expires_in = ((size - 1) / 8 + 1) * Bus.PerWordLatency
-        case _ =>
-          ()
-      }
+      val message = device.message()
+      state = BusState.RequestReceived(
+        message,
+        device,
+        currentCycle + Bus.PerWordLatency
+      )
     }
+  }
+
+  def isShared(address: Address): Boolean =
+    devices.map(_.hasCopy(address)).reduce(_ || _)
 }

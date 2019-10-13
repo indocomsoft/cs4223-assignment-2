@@ -3,24 +3,29 @@ package coherence.devices
 import scala.io.Source
 
 object Processor {
-  def apply[State, Message](id: Int,
-                            cache: Cache[State, Message],
-                            source: Source): Processor[State, Message] =
+  def apply[State, Message, Reply](
+    id: Int,
+    cache: Cache[State, Message, Reply],
+    source: Source
+  ): Processor[State, Message, Reply] =
     new Processor(id, cache, source.getLines().map(ProcessorOp(_)))
 
-  sealed trait Status
+  sealed trait Status { val finished: Boolean = false }
   object Status {
     case class Ready() extends Status
-    case class Operation(untilCycle: Long) extends Status
+    case class Operation(finishedCycle: Long) extends Status
     case class Cache() extends Status
-    case class Finished() extends Status
+    case class Finished() extends Status {
+      override val finished: Boolean = true
+    }
   }
 }
 
-class Processor[Message, State](val id: Int,
-                                val cache: Cache[Message, State],
-                                private[this] val ops: Iterator[ProcessorOp])
-    extends CacheDelegate
+class Processor[Message, State, Reply](
+  val id: Int,
+  val cache: Cache[Message, State, Reply],
+  private[this] val ops: Iterator[ProcessorOp]
+) extends CacheDelegate
     with Device {
   private[this] var currentCycle: Long = 0
 
@@ -33,11 +38,11 @@ class Processor[Message, State](val id: Int,
   }
 
   override def cycle(): Unit = {
-    currentCycle += 1
+    if (!status.finished) currentCycle += 1
     status match {
       case Processor.Status.Finished() | Processor.Status.Cache() => ()
-      case Processor.Status.Operation(untilCycle) =>
-        if (currentCycle > untilCycle) {
+      case Processor.Status.Operation(finishedCycle) =>
+        if (currentCycle == finishedCycle) {
           status = Processor.Status.Ready()
           currentOp = None
           performInstruction()
@@ -55,7 +60,7 @@ class Processor[Message, State](val id: Int,
       case None => status = Processor.Status.Finished()
       case Some(ProcessorOp.Other(numCycles)) =>
         status =
-          Processor.Status.Operation(untilCycle = currentCycle + numCycles)
+          Processor.Status.Operation(finishedCycle = currentCycle + numCycles)
       case Some(ProcessorOp.Load(address)) =>
         status = Processor.Status.Cache()
         cache.request(this, CacheOp.Load(address))

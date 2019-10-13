@@ -25,3 +25,9 @@ scala_repl(
     name = "repl",
     deps = [":main"],
 )
+
+scala_library(
+    name = "address",
+    srcs = ["Address.scala"],
+    visibility = ["//visibility:public"],
+)

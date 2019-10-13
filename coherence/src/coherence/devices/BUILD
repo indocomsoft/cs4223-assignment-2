@@ -15,13 +15,11 @@ scala_library(
     exports = [
         ":cache",
         ":device",
-        "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",
     ],
     deps = [
         ":cache",
         ":device",
-        "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",
     ],
 )

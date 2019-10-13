@@ -1,37 +1,25 @@
 package coherence.devices
 
-import coherence.bus.{Bus, BusDelegate, MessageMetadata}
+import coherence.Address
+import coherence.bus.{Bus, BusDelegate, ReplyMetadata}
 
 import scala.collection.mutable
 
 object Memory {
   val Latency = 100
-
-  sealed trait Op
-  object Op {
-    case class Read(address: Long) extends Op
-    case class Write(address: Long) extends Op
-  }
-
 }
 
-abstract class Memory[State, Message](bus: Bus[Message],
-                                      protected val blockSize: Int)
+abstract class Memory[State, Message, Reply](bus: Bus[Message, Reply],
+                                             protected val blockSize: Int)
     extends Device
-    with BusDelegate[Message] {
+    with BusDelegate[Message, Reply] {
 
   bus.addBusDelegate(this)
 
   protected var currentCycle: Long = 0
-  // A map to finishedCycle
-  protected val requests = mutable.Map[Memory.Op, Long]()
+  // Tuple of Address to when read is finished
+  protected var maybeAddress: Option[(Address, Long)] = None
 
   // Always return false so as not to affect the OR line
-  override def hasCopy(address: Long): Boolean = false
-
-  protected def read(address: Long): Unit = {
-    val op = Memory.Op.Read(address)
-    if (!requests.contains(op))
-      requests.put(Memory.Op.Read(address), currentCycle + Memory.Latency)
-  }
+  override def hasCopy(address: Address): Boolean = false
 }

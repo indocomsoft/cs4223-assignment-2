@@ -1,5 +1,6 @@
 package coherence.devices
 
+import coherence.Address
 import coherence.bus.{Bus, BusDelegate}
 import coherence.cache.LRUCache
 
@@ -7,13 +8,13 @@ object Cache {
   val HitLatency = 1
 }
 
-abstract class Cache[State, Message](val id: Int,
-                                     cacheSize: Int,
-                                     associativity: Int,
-                                     blockSize: Int,
-                                     val bus: Bus[Message])
+abstract class Cache[State, Message, Reply](val id: Int,
+                                            cacheSize: Int,
+                                            associativity: Int,
+                                            blockSize: Int,
+                                            val bus: Bus[Message, Reply])
     extends Device
-    with BusDelegate[Message] {
+    with BusDelegate[Message, Reply] {
 
   /**
     * @param finishedCycle -1 if still pending
@@ -39,32 +40,12 @@ abstract class Cache[State, Message](val id: Int,
     currentCycle += 1
     op match {
       case Some(OpMetadata(sender, op, finishedCycle))
-          if finishedCycle != -1 && currentCycle > finishedCycle =>
+          if currentCycle == finishedCycle =>
         sender.requestCompleted(op)
         this.op = None
       case _ =>
         ()
     }
-    debug
-  }
-
-  private[this] def debug: Unit = op match {
-    case Some(opm @ OpMetadata(_, op, _)) =>
-      val (tag, setIndex, _) = calculateAddress(op.address)
-      println(s"Cache $id: tag $tag, setIndex $setIndex, op $opm")
-    case v @ None => println(s"Cache $id: op $v")
-  }
-
-  /**
-    * @return (tag, setIndex, offset)
-    */
-  def calculateAddress(address: Long): (Int, Int, Int) = {
-    var tmp = address
-    val offset = tmp & ((1 << offsetBits) - 1)
-    tmp = tmp >> offsetBits
-    val setIndex = tmp & ((1 << setIndexOffsetBits) - 1)
-    tmp = tmp >> setIndexOffsetBits
-    (tmp.toInt, setIndex.toInt, offset.toInt)
   }
 
   override def toString: String = s"Cache $id"
