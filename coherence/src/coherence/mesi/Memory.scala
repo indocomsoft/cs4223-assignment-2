@@ -18,7 +18,10 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
       case Message.BusUpgr() => ()
       case Message.BusRd() | Message.BusRdX() | Message.Flush() =>
         maybeReply = Some(
-          (Reply.MemoryRead(), currentCycle + AbstractMemory.Latency)
+          (
+            ReplyMetadata(Reply.MemoryRead(), blockSize),
+            currentCycle + AbstractMemory.Latency
+          )
         )
     }
     println(s"Memory: after, maybeReply = $maybeReply")
@@ -33,7 +36,7 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
   ): Unit = reply match {
     case Reply.FlushOpt() =>
       maybeReply match {
-        case Some((Reply.MemoryRead(), _)) =>
+        case Some((ReplyMetadata(Reply.MemoryRead(), _), _)) =>
           println("Memory: received FLushOpt(), so setting maybeReply to None")
           maybeReply = None
         case None | Some(_) =>
@@ -43,9 +46,12 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
       }
     case Reply.Flush() =>
       maybeReply match {
-        case Some((Reply.MemoryRead(), _)) =>
+        case Some((ReplyMetadata(Reply.MemoryRead(), _), _)) =>
           maybeReply = Some(
-            (Reply.WriteBackOk(), currentCycle + AbstractMemory.Latency)
+            (
+              ReplyMetadata(Reply.WriteBackOk(), 1),
+              currentCycle + AbstractMemory.Latency
+            )
           )
         case None | Some(_) =>
           throw new RuntimeException(

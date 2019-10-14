@@ -17,15 +17,16 @@ abstract class Memory[State, Message, Reply](bus: Bus[Message, Reply],
   bus.addBusDelegate(this)
 
   protected var currentCycle: Long = 0
+
   // Tuple of reply and when operation is finished
-  protected var maybeReply: Option[(Reply, Long)] = None
+  protected var maybeReply: Option[(ReplyMetadata[Reply], Long)] = None
 
   override def cycle(): Unit = {
     currentCycle += 1
     maybeReply match {
-      case Some((reply, finishedCycle)) =>
+      case Some((replyMetadata, finishedCycle)) =>
         if (currentCycle == finishedCycle) {
-          bus.reply(this, ReplyMetadata(reply, blockSize))
+          bus.reply(this, replyMetadata)
           maybeReply = None
         }
       case None =>

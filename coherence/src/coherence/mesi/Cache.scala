@@ -37,8 +37,9 @@ class Cache(id: Int,
         state = CacheState.EvictWaitingForBus(address, sender, op)
         bus.requestAccess(this)
       case Some(
-          (_, CacheLine(State.I) | CacheLine(State.E) | CacheLine(State.S))
+          (tag, CacheLine(State.I) | CacheLine(State.E) | CacheLine(State.S))
           ) =>
+        println(s"$this: Evicting ${Address(tag, setIndex)}")
         ()
     }
   }
