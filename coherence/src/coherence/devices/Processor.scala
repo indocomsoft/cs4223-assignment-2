@@ -45,7 +45,6 @@ class Processor[Message, State, Reply](
         if (currentCycle == finishedCycle) {
           status = Processor.Status.Ready()
           currentOp = None
-          performInstruction()
         }
       case Processor.Status.Ready() =>
         performInstruction()

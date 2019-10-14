@@ -5,8 +5,6 @@ import coherence.bus.{Bus, BusDelegate, MessageMetadata}
 import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
 import coherence.cache.CacheLine
 
-import scala.collection.mutable
-
 class Cache(id: Int,
             cacheSize: Int,
             associativity: Int,
@@ -34,15 +32,15 @@ class Cache(id: Int,
         op match {
           case CacheOp.Load(_) =>
             sets(setIndex).get(tag) match {
+              case None | Some(CacheLine(State.I)) =>
+                state = CacheState.WaitingForBus(sender, op)
+                bus.requestAccess(this)
               case Some(CacheLine(_)) =>
                 state = CacheState.WaitingForResult(
                   sender,
                   op,
                   currentCycle + CacheTrait.HitLatency
                 )
-              case None | Some(CacheLine(State.I)) =>
-                state = CacheState.WaitingForBus(sender, op)
-                bus.requestAccess(this)
             }
           case CacheOp.Store(_) =>
             sets(setIndex).get(tag) match {
@@ -68,6 +66,9 @@ class Cache(id: Int,
       case CacheState.WaitingForBus(sender, op) =>
         val address = toAddress(op.address)
         state = CacheState.WaitingForReplies(sender, op)
+        println(
+          s"$this: op = $op, cacheLine = ${sets(address.setIndex).immutableGet(address.tag)}"
+        )
         op match {
           case CacheOp.Load(_) =>
             MessageMetadata(Message.BusRd(), address)
@@ -147,7 +148,7 @@ class Cache(id: Int,
               sets(setIndex).update(tag, CacheLine(State.I))
               maybeReply = Some(Reply.FlushOpt())
             case Message.BusUpgr() =>
-              maybeReply = Some(Reply.FlushOpt())
+              sets(setIndex).update(tag, CacheLine(State.I))
           }
         case None | Some(CacheLine(State.I)) => ()
       }
@@ -162,6 +163,9 @@ class Cache(id: Int,
     originalMessage: Message
   ): Unit =
     if (originalSender.eq(this)) {
+      println(
+        s"$this: Got reply $reply addressed to me from $sender on address $address"
+      )
       val Address(tag, setIndex) = address
       state match {
         case CacheState.WaitingForReplies(sender, op) =>
@@ -194,6 +198,11 @@ class Cache(id: Int,
           throw new RuntimeException(
             s"$this: got reply addressed to me when state is $state"
           )
+      }
+    } else {
+      reply match {
+        case Reply.FlushOpt() => maybeReply = None
+        case _                => ()
       }
     }
 

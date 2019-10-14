@@ -35,6 +35,11 @@ class Bus[Message, Reply] {
 
   private[this] var state: BusState = BusState.Ready()
 
+  case class MarkEndMetadata(owner: BusDelegate[Message, Reply],
+                             message: Message,
+                             address: Address)
+  private[this] var needMarkEndMetadata: Option[MarkEndMetadata] = None
+
   private[this] var currentCycle: Long = 0
 
   private[this] val devices = mutable.Set[BusDelegate[Message, Reply]]()
@@ -56,8 +61,8 @@ class Bus[Message, Reply] {
         throw new RuntimeException(
           s"Bus: relinquishAccess called by $device but current bus owner is $owner"
         )
-      (devices - owner).foreach(_.onBusTransactionEnd(owner, address, message))
       state = BusState.Ready()
+      needMarkEndMetadata = Some(MarkEndMetadata(owner, message, address))
       println(s"Bus: after relinquish, state = $state")
     }
 
@@ -81,6 +86,14 @@ class Bus[Message, Reply] {
 
   def cycle(): Unit = {
     currentCycle += 1
+    needMarkEndMetadata match {
+      case None => ()
+      case Some(MarkEndMetadata(owner, message, address)) =>
+        (devices - owner).foreach(
+          _.onBusTransactionEnd(owner, address, message)
+        )
+        needMarkEndMetadata = None
+    }
     println(s"Bus: cycle $currentCycle before, state = $state")
     state match {
       case BusState.Ready() =>
@@ -100,7 +113,10 @@ class Bus[Message, Reply] {
           ) =>
         if (currentCycle == finishedCycle) {
           state = BusState.RequestSent(messageMetadata, owner)
-          devices.foreach(_.onBusCompleteMessage(owner, address, message))
+          (devices - owner).foreach(
+            _.onBusCompleteMessage(owner, address, message)
+          )
+          owner.onBusCompleteMessage(owner, address, message)
         }
       case BusState.ProcessingReply(
           messageMetadata @ MessageMetadata(message, address),
@@ -129,7 +145,7 @@ class Bus[Message, Reply] {
     state match {
       case BusState.Ready() | BusState.ProcessingRequest(_, _, _) =>
         throw new RuntimeException(
-          s"Bus: unexpected call to reply when state is $state"
+          s"Bus: unexpected call to reply by $sender when state is $state"
         )
       case BusState.ProcessingReply(_, _, _, _, _) =>
         false

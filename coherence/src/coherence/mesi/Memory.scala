@@ -34,6 +34,7 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
     case Reply.FlushOpt() =>
       maybeReply match {
         case Some((Reply.MemoryRead(), _)) =>
+          println("Memory: received FLushOpt(), so setting maybeReply to None")
           maybeReply = None
         case None | Some(_) =>
           throw new RuntimeException(
