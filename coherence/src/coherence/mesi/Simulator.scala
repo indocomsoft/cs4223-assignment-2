@@ -24,13 +24,13 @@ class Simulator(sources: List[Source],
                 cacheSize: Int,
                 associativity: Int,
                 blockSize: Int) {
-  private[this] val bus: Bus[Message] = new Bus[Message]()
+  private[this] val bus: Bus[Message, Reply] = new Bus[Message, Reply]()
   private[this] val memory: Memory = new Memory(bus, blockSize)
   private[this] val caches: Array[Cache] =
     (0 until Simulator.NumProcessors).map { id =>
       new Cache(id, cacheSize, associativity, blockSize, bus)
     }.toArray
-  private[this] val processors: Array[Processor[State, Message]] =
+  private[this] val processors: Array[Processor[State, Message, Reply]] =
     caches
       .zip(sources)
       .map { case (cache, source) => Processor(cache.id, cache, source) }

@@ -6,31 +6,22 @@ import coherence.devices.{Memory => AbstractMemory}
 
 class Memory(bus: Bus[Message, Reply], blockSize: Int)
     extends AbstractMemory[State, Message, Reply](bus, blockSize) {
-  override def cycle(): Unit = {
-    currentCycle += 1
-    maybeAddress match {
-      case Some((address, finishedCycle)) =>
-        if (currentCycle == finishedCycle) {
-          bus.reply(this, ReplyMetadata(Reply.FlushOpt(), blockSize))
-          maybeAddress = None
-        }
-      case None =>
-        ()
-    }
-  }
-
   override def busAccessGranted(): MessageMetadata[Message] =
     throw new RuntimeException("Memory: unexpected busAccessGranted()")
 
   override def onBusCompleteMessage(sender: BusDelegate[Message, Reply],
                                     address: Address,
                                     message: Message): Unit = {
-    require(maybeAddress.isEmpty)
+    require(maybeReply.isEmpty)
+    println(s"Memory: before, maybeReply = $maybeReply")
     message match {
       case Message.BusUpgr() => ()
       case Message.BusRd() | Message.BusRdX() =>
-        maybeAddress = Some((address, currentCycle + AbstractMemory.Latency))
+        maybeReply = Some(
+          (Reply.MemoryRead(), currentCycle + AbstractMemory.Latency)
+        )
     }
+    println(s"Memory: after, maybeReply = $maybeReply")
   }
 
   override def onBusCompleteResponse(
@@ -38,16 +29,26 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
     address: Address,
     reply: Reply,
     originalSender: BusDelegate[Message, Reply],
-    originalMessage: _root_.coherence.mesi.Message
+    originalMessage: Message
   ): Unit = reply match {
-    case Reply.FlushOpt() | Reply.Flush() =>
-      maybeAddress match {
-        case Some((currentAddress, _)) =>
-          require(currentAddress == address)
-          maybeAddress = None
-        case None =>
+    case Reply.FlushOpt() =>
+      maybeReply match {
+        case Some((Reply.MemoryRead(), _)) =>
+          maybeReply = None
+        case None | Some(_) =>
           throw new RuntimeException(
-            "Memory: received FlushOpt() while maybeAddress is None"
+            s"Memory: received FlushOpt() while maybeReply is $maybeReply"
+          )
+      }
+    case Reply.Flush() =>
+      maybeReply match {
+        case Some((Reply.MemoryRead(), _)) =>
+          maybeReply = Some(
+            (Reply.WriteBackOk(), currentCycle + AbstractMemory.Latency)
+          )
+        case None | Some(_) =>
+          throw new RuntimeException(
+            s"Memory: received Flush() while maybeReply is $maybeReply"
           )
       }
     case Reply.MemoryRead() | Reply.WriteBackOk() =>

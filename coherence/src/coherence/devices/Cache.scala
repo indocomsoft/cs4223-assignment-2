@@ -16,10 +16,27 @@ abstract class Cache[State, Message, Reply](val id: Int,
     extends Device
     with BusDelegate[Message, Reply] {
 
-  case class OpMetadata(sender: CacheDelegate,
-                        op: CacheOp,
-                        maybeFinishedCycle: Option[Long],
-                        busAccess: Boolean)
+  sealed trait CacheState
+  sealed trait ActiveCacheState extends CacheState {
+    val sender: CacheDelegate
+    val op: CacheOp
+  }
+
+  object CacheState {
+    case class Ready() extends CacheState
+    case class WaitingForBus(sender: CacheDelegate, op: CacheOp)
+        extends ActiveCacheState
+    case class WaitingForReplies(sender: CacheDelegate, op: CacheOp)
+        extends ActiveCacheState
+    case class WaitingForWriteback(sender: CacheDelegate, op: CacheOp)
+        extends ActiveCacheState
+    case class WaitingForResult(sender: CacheDelegate,
+                                op: CacheOp,
+                                finishedCycle: Long)
+        extends ActiveCacheState
+    case class WaitingForBusUpgrPropagation(sender: CacheDelegate, op: CacheOp)
+        extends ActiveCacheState
+  }
 
   val numBlocks = cacheSize / blockSize
   val numSets = numBlocks / associativity
@@ -29,7 +46,7 @@ abstract class Cache[State, Message, Reply](val id: Int,
     (1 to numSets).map(_ => new LRUCache[State](associativity)).toArray
 
   protected var currentCycle: Long = 0
-  protected var op: Option[OpMetadata] = None
+  protected var state: CacheState = CacheState.Ready()
   protected var maybeReply: Option[Reply] = None
 
   bus.addBusDelegate(this)
@@ -38,18 +55,18 @@ abstract class Cache[State, Message, Reply](val id: Int,
 
   override def cycle(): Unit = {
     currentCycle += 1
-    op match {
-      case Some(OpMetadata(sender, op, Some(finishedCycle), _)) =>
-        if (currentCycle == finishedCycle) {
-          sender.requestCompleted(op)
-          this.op = None
-        }
+    state match {
+      case CacheState.WaitingForResult(sender, op, finishedCycle)
+          if (finishedCycle == currentCycle) =>
+        sender.requestCompleted(op)
+        state = CacheState.Ready()
       case _ =>
         maybeReply match {
-          case Some(reply) =>
-            if (bus.reply(this, ReplyMetadata(reply, blockSize)))
-              maybeReply = None
           case None => ()
+          case Some(reply) =>
+            if (bus.reply(this, ReplyMetadata(reply, blockSize))) {
+              maybeReply = None
+            }
         }
     }
   }
@@ -61,4 +78,7 @@ abstract class Cache[State, Message, Reply](val id: Int,
   }
 
   override def toString: String = s"Cache $id"
+
+  protected def toAddress(address: Long): Address =
+    Address(address, offsetBits, setIndexOffsetBits)
 }

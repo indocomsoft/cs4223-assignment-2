@@ -58,6 +58,7 @@ class Bus[Message, Reply] {
         )
       (devices - owner).foreach(_.onBusTransactionEnd(owner, address, message))
       state = BusState.Ready()
+      println(s"Bus: after relinquish, state = $state")
     }
 
     state match {
@@ -80,6 +81,7 @@ class Bus[Message, Reply] {
 
   def cycle(): Unit = {
     currentCycle += 1
+    println(s"Bus: cycle $currentCycle before, state = $state")
     state match {
       case BusState.Ready() =>
         if (requests.nonEmpty) {
@@ -97,10 +99,8 @@ class Bus[Message, Reply] {
           finishedCycle
           ) =>
         if (currentCycle == finishedCycle) {
-          (devices - owner).foreach(
-            _.onBusCompleteMessage(owner, address, message)
-          )
           state = BusState.RequestSent(messageMetadata, owner)
+          devices.foreach(_.onBusCompleteMessage(owner, address, message))
         }
       case BusState.ProcessingReply(
           messageMetadata @ MessageMetadata(message, address),
@@ -110,13 +110,14 @@ class Bus[Message, Reply] {
           finishedCycle
           ) =>
         if (currentCycle == finishedCycle) {
-          (devices - owner - sender).foreach(
+          state = BusState.RequestSent(messageMetadata, owner)
+          (devices - sender).foreach(
             _.onBusCompleteResponse(sender, address, reply, owner, message)
           )
-          state = BusState.RequestSent(messageMetadata, owner)
         }
       case BusState.RequestSent(_, _) => ()
     }
+    println(s"Bus: cycle $currentCycle after, state = $state")
   }
 
   /**
