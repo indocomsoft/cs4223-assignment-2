@@ -19,40 +19,39 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
     }
   }
 
-  override def message(): MessageMetadata[Message] =
-    throw new RuntimeException("Unexpected message() on Memory")
+  override def busAccessGranted(): MessageMetadata[Message] =
+    throw new RuntimeException("Memory: unexpected busAccessGranted()")
 
-  override def onCompleteMessage(sender: BusDelegate[Message, Reply],
-                                 address: Address,
-                                 message: Message): Unit = {
+  override def onBusCompleteMessage(sender: BusDelegate[Message, Reply],
+                                    address: Address,
+                                    message: Message): Unit = {
     require(maybeAddress.isEmpty)
     message match {
-      case Message.BusUpgr() =>
-        bus.reply(this, ReplyMetadata(Reply.Ok(), 1))
-      case Message.BusRd() =>
+      case Message.BusUpgr() => ()
+      case Message.BusRd() | Message.BusRdX() =>
         maybeAddress = Some((address, currentCycle + AbstractMemory.Latency))
-      case Message.BusRdX() =>
-        bus.reply(this, ReplyMetadata(Reply.Ok(), 1))
     }
   }
 
-  override def onReply(sender: BusDelegate[Message, Reply],
-                       address: Address,
-                       reply: Reply): Unit =
-    reply match {
-      // Assume that memory has an unlimited write buffer
-      case Reply.Flush() | Reply.FlushOpt() =>
-        maybeAddress match {
-          case Some((currentAddress, _)) =>
-            require(currentAddress == address)
-            maybeAddress = None
-            bus.reply(this, ReplyMetadata(Reply.Ok(), 1))
-          case None =>
-            throw new RuntimeException(
-              "Memory: Got FlushOpt() while maybeAddress is None"
-            )
-        }
-      case Reply.Ok() => ()
-    }
+  override def onBusCompleteResponse(
+    sender: BusDelegate[Message, Reply],
+    address: Address,
+    reply: Reply,
+    originalSender: BusDelegate[Message, Reply],
+    originalMessage: _root_.coherence.mesi.Message
+  ): Unit = reply match {
+    case Reply.FlushOpt() | Reply.Flush() =>
+      maybeAddress match {
+        case Some((currentAddress, _)) =>
+          require(currentAddress == address)
+          maybeAddress = None
+        case None =>
+          throw new RuntimeException(
+            "Memory: received FlushOpt() while maybeAddress is None"
+          )
+      }
+    case Reply.MemoryRead() | Reply.WriteBackOk() =>
+      throw new RuntimeException(s"Memory: unexpected reply $reply")
+  }
 
 }

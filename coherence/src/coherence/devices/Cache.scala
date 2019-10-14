@@ -1,7 +1,7 @@
 package coherence.devices
 
 import coherence.Address
-import coherence.bus.{Bus, BusDelegate}
+import coherence.bus.{Bus, BusDelegate, ReplyMetadata}
 import coherence.cache.LRUCache
 
 object Cache {
@@ -16,10 +16,10 @@ abstract class Cache[State, Message, Reply](val id: Int,
     extends Device
     with BusDelegate[Message, Reply] {
 
-  /**
-    * @param finishedCycle -1 if still pending
-    */
-  case class OpMetadata(sender: CacheDelegate, op: CacheOp, finishedCycle: Long)
+  case class OpMetadata(sender: CacheDelegate,
+                        op: CacheOp,
+                        maybeFinishedCycle: Option[Long],
+                        busAccess: Boolean)
 
   val numBlocks = cacheSize / blockSize
   val numSets = numBlocks / associativity
@@ -29,8 +29,8 @@ abstract class Cache[State, Message, Reply](val id: Int,
     (1 to numSets).map(_ => new LRUCache[State](associativity)).toArray
 
   protected var currentCycle: Long = 0
-  // Long is finishedCycle, -1 if still pending
   protected var op: Option[OpMetadata] = None
+  protected var maybeReply: Option[Reply] = None
 
   bus.addBusDelegate(this)
 
@@ -39,13 +39,25 @@ abstract class Cache[State, Message, Reply](val id: Int,
   override def cycle(): Unit = {
     currentCycle += 1
     op match {
-      case Some(OpMetadata(sender, op, finishedCycle))
-          if currentCycle == finishedCycle =>
-        sender.requestCompleted(op)
-        this.op = None
+      case Some(OpMetadata(sender, op, Some(finishedCycle), _)) =>
+        if (currentCycle == finishedCycle) {
+          sender.requestCompleted(op)
+          this.op = None
+        }
       case _ =>
-        ()
+        maybeReply match {
+          case Some(reply) =>
+            if (bus.reply(this, ReplyMetadata(reply, blockSize)))
+              maybeReply = None
+          case None => ()
+        }
     }
+  }
+
+  override def onBusTransactionEnd(sender: BusDelegate[Message, Reply],
+                                   address: Address,
+                                   message: Message): Unit = {
+    maybeReply = None
   }
 
   override def toString: String = s"Cache $id"

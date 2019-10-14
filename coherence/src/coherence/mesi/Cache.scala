@@ -1,5 +1,6 @@
 package coherence.mesi
 
+import coherence.Address
 import coherence.bus.{Bus, BusDelegate, MessageMetadata}
 import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
 import coherence.cache.CacheLine
@@ -10,8 +11,8 @@ class Cache(id: Int,
             cacheSize: Int,
             associativity: Int,
             blockSize: Int,
-            bus: Bus[Message])
-    extends CacheTrait[State, Message](
+            bus: Bus[Message, Reply])
+    extends CacheTrait[State, Message, Reply](
       id,
       cacheSize,
       associativity,
@@ -26,7 +27,8 @@ class Cache(id: Int,
 
   override def request(sender: CacheDelegate, op: CacheOp): Unit = {
     require(this.op.isEmpty)
-    val (tag, setIndex, _) = calculateAddress(op.address)
+    val Address(tag, setIndex) =
+      Address(op.address, offsetBits, setIndexOffsetBits)
     op match {
       case CacheOp.Load(_) =>
         sets(setIndex).get(tag) match {
@@ -65,16 +67,17 @@ class Cache(id: Int,
       op match {
         case Some(OpMetadata(_, CacheOp.Load(address), -1)) =>
           pendingMessage = false
-          Some(MessageMetadata(Message.BusRd(), address, 1))
+          Some(MessageMetadata(Message.BusRd(), address))
         case Some(OpMetadata(_, CacheOp.Store(address), -1)) =>
-          val (tag, setIndex, _) = calculateAddress(address)
+          val Address(tag, setIndex) =
+            Address(address, offsetBits, setIndexOffsetBits)
           sets(setIndex).immutableGet(tag) match {
             case None | Some(CacheLine(State.I)) =>
               pendingMessage = false
-              Some(MessageMetadata(Message.BusRdX(), address, 1))
+              Some(MessageMetadata(Message.BusRdX(), address))
             case Some(CacheLine(State.S)) =>
               pendingMessage = false
-              Some(MessageMetadata(Message.BusUpgr(), address, 1))
+              Some(MessageMetadata(Message.BusUpgr(), address))
             case _ =>
               throw new RuntimeException("Unexpected request for message")
           }
@@ -89,10 +92,11 @@ class Cache(id: Int,
       None
     }
 
-  override def onCompleteMessage(sender: BusDelegate[Message],
+  override def onCompleteMessage(sender: BusDelegate[Message, Reply],
                                  address: Long,
                                  message: Message): Unit = {
-    val (tag, setIndex, _) = calculateAddress(address)
+    val Address(tag, setIndex) =
+      Address(address, offsetBits, setIndexOffsetBits)
     if (sender.eq(this)) {
       println(
         s"Cache $id: Ownself got message $message on address $address (tag $tag setIndex $setIndex), mine ${sets(setIndex)
@@ -170,7 +174,8 @@ class Cache(id: Int,
                 Message.FlushOpt() | Message.FlushOpt(),
                 Some(OpMetadata(sender, CacheOp.Load(loadAddress), -1))
                 ) =>
-              val (loadTag, loadSetIndex, _) = calculateAddress(loadAddress)
+              val Address(loadTag, loadSetIndex) =
+                Address(loadAddress, offsetBits, setIndexOffsetBits)
               if (tag == loadTag && setIndex == loadSetIndex) {
                 val state = if (bus.isShared(address)) State.S else State.E
                 sets(setIndex).update(tag, CacheLine(state))
@@ -191,7 +196,8 @@ class Cache(id: Int,
                 Message.FlushOpt() | Message.Flush(),
                 Some(OpMetadata(sender, CacheOp.Store(storeAddress), -1))
                 ) =>
-              val (storeTag, storeSetIndex, _) = calculateAddress(storeAddress)
+              val Address(storeTag, storeSetIndex, _) =
+                Address(storeAddress, offsetBits, setIndexOffsetBits)
               if (tag == storeTag && setIndex == storeSetIndex) {
                 sets(setIndex).update(tag, CacheLine(State.M))
                 this.op = Some(
@@ -214,7 +220,8 @@ class Cache(id: Int,
   }
 
   override def hasCopy(address: Long): Boolean = {
-    val (tag, setIndex, _) = calculateAddress(address)
+    val Address(tag, setIndex) =
+      Address(address, offsetBits, setIndexOffsetBits)
     sets(setIndex).get(tag) match {
       case None | Some(CacheLine(State.I)) => false
       case _                               => true

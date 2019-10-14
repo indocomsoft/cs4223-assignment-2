@@ -5,5 +5,6 @@ sealed trait Reply
 object Reply {
   case class Flush() extends Reply
   case class FlushOpt() extends Reply
-  case class Ok() extends Reply
+  case class MemoryRead() extends Reply
+  case class WriteBackOk() extends Reply
 }
