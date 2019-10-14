@@ -21,6 +21,9 @@ abstract class Cache[State, Message, Reply](val id: Int,
     val sender: CacheDelegate
     val op: CacheOp
   }
+  sealed trait EvictCacheState extends ActiveCacheState {
+    val address: Address
+  }
 
   object CacheState {
     case class Ready() extends CacheState
@@ -36,6 +39,14 @@ abstract class Cache[State, Message, Reply](val id: Int,
         extends ActiveCacheState
     case class WaitingForBusUpgrPropagation(sender: CacheDelegate, op: CacheOp)
         extends ActiveCacheState
+    case class EvictWaitingForBus(address: Address,
+                                  sender: CacheDelegate,
+                                  op: CacheOp)
+        extends EvictCacheState
+    case class EvictWaitingForWriteback(address: Address,
+                                        sender: CacheDelegate,
+                                        op: CacheOp)
+        extends EvictCacheState
   }
 
   val numBlocks = cacheSize / blockSize

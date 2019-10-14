@@ -41,9 +41,9 @@ class Simulator(sources: List[Source],
     while (processors.exists(!_.isFinished())) {
       currentCycle += 1
       println(currentCycle)
-      bus.cycle()
       processors.foreach(_.cycle())
       memory.cycle()
+      bus.cycle()
     }
   }
 }

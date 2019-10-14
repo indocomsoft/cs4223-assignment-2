@@ -25,6 +25,24 @@ class Cache(id: Int,
     }
   }
 
+  private[this] def maybeEvict(sender: CacheDelegate, op: CacheOp): Unit = {
+    val Address(tag, setIndex) = toAddress(op.address)
+    sets(setIndex).update(tag, CacheLine(State.I)) match {
+      case None =>
+        state = CacheState.WaitingForBus(sender, op)
+        bus.requestAccess(this)
+      case Some((tag, CacheLine(State.M))) =>
+        val address = Address(tag, setIndex)
+        println(s"$this: Evicting $address requires flush")
+        state = CacheState.EvictWaitingForBus(address, sender, op)
+        bus.requestAccess(this)
+      case Some(
+          (_, CacheLine(State.I) | CacheLine(State.E) | CacheLine(State.S))
+          ) =>
+        ()
+    }
+  }
+
   override def request(sender: CacheDelegate, op: CacheOp): Unit = {
     state match {
       case CacheState.Ready() =>
@@ -32,6 +50,8 @@ class Cache(id: Int,
         op match {
           case CacheOp.Load(_) =>
             sets(setIndex).get(tag) match {
+              case None =>
+                maybeEvict(sender, op)
               case None | Some(CacheLine(State.I)) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
@@ -86,6 +106,10 @@ class Cache(id: Int,
                 )
             }
         }
+      case CacheState.EvictWaitingForBus(address, sender, op) =>
+        state = CacheState.EvictWaitingForWriteback(address, sender, op)
+        println(s"$this: Eviction, flushing $address")
+        MessageMetadata(Message.Flush(), address)
       case _ =>
         throw new RuntimeException(
           s"$this: busAccessGranted called when state is $state"
@@ -126,6 +150,7 @@ class Cache(id: Int,
               throw new RuntimeException(
                 s"$this: Received $message when state is M"
               )
+            case Message.Flush() => ()
           }
         case Some(CacheLine(State.E)) =>
           message match {
@@ -139,6 +164,7 @@ class Cache(id: Int,
               throw new RuntimeException(
                 s"$this: Received $message when state is E"
               )
+            case Message.Flush() => ()
           }
         case Some(CacheLine(State.S)) =>
           message match {
@@ -149,6 +175,7 @@ class Cache(id: Int,
               maybeReply = Some(Reply.FlushOpt())
             case Message.BusUpgr() =>
               sets(setIndex).update(tag, CacheLine(State.I))
+            case Message.Flush() => ()
           }
         case None | Some(CacheLine(State.I)) => ()
       }
@@ -189,6 +216,17 @@ class Cache(id: Int,
               sender.requestCompleted(op)
               state = CacheState.Ready()
               commitChange(op, address, reply)
+            case _ =>
+              throw new RuntimeException(
+                s"$this: got $reply when state is $state"
+              )
+          }
+        case CacheState.EvictWaitingForWriteback(addressToEvict, sender, op) =>
+          require(addressToEvict == address)
+          reply match {
+            case Reply.WriteBackOk() =>
+              bus.relinquishAccess(this)
+              state = CacheState.WaitingForBus(sender, op)
             case _ =>
               throw new RuntimeException(
                 s"$this: got $reply when state is $state"
