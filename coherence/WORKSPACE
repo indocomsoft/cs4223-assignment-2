@@ -8,8 +8,8 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_scala/archive/%s.zip" % rules_scala_version,
 )
 
-load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_toolchains")
-scala_register_toolchains()
+load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_unused_deps_toolchains")
+scala_register_unused_deps_toolchains()
 
 load("@io_bazel_rules_scala//scala:scala.bzl", "scala_repositories")
 scala_repositories((
@@ -20,16 +20,6 @@ scala_repositories((
        "scala_reflect": "4d6405395c4599ce04cea08ba082339e3e42135de9aae2923c9f5367e957315a"
     }
 ))
-
-protobuf_version="09745575a923640154bcf307fba8aedff47f240a"
-protobuf_version_sha256="416212e14481cff8fd4849b1c1c1200a7f34808a54377e22d7447efdf54ad758"
-
-http_archive(
-    name = "com_google_protobuf",
-    url = "https://github.com/protocolbuffers/protobuf/archive/%s.tar.gz" % protobuf_version,
-    strip_prefix = "protobuf-%s" % protobuf_version,
-    sha256 = protobuf_version_sha256,
-)
 
 # bazel-skylib 0.8.0 released 2019.03.20 (https://github.com/bazelbuild/bazel-skylib/releases/tag/0.8.0)
 skylib_version = "0.8.0"

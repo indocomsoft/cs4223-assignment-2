@@ -3,8 +3,6 @@ package coherence.devices
 import coherence.Address
 import coherence.bus.{Bus, BusDelegate, ReplyMetadata}
 
-import scala.collection.mutable
-
 object Memory {
   val Latency = 100
 }

@@ -1,15 +1,15 @@
 package coherence.bus
 
 import coherence.Address
+import coherence.devices.Device
 
-import scala.collection.immutable.Queue
 import scala.collection.mutable
 
 object Bus {
   val PerWordLatency = 2
 }
 
-class Bus[Message, Reply] {
+class Bus[Message, Reply] extends Device {
   sealed trait BusState
   sealed trait ActiveBusState extends BusState {
     val messageMetadata: MessageMetadata[Message]
@@ -84,7 +84,7 @@ class Bus[Message, Reply] {
     }
   }
 
-  def cycle(): Unit = {
+  override def cycle(): Unit = {
     currentCycle += 1
     needMarkEndMetadata match {
       case None => ()

@@ -5,7 +5,6 @@ scala_binary(
     ],
     main_class = "coherence.Main",
     deps = [
-        ":helper",
         ":protocol",
         "//src/coherence/mesi:simulator",
     ],
@@ -14,11 +13,6 @@ scala_binary(
 scala_library(
     name = "protocol",
     srcs = ["Protocol.scala"],
-)
-
-scala_library(
-    name = "helper",
-    srcs = ["Helper.scala"],
 )
 
 scala_repl(

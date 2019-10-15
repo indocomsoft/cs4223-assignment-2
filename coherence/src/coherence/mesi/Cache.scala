@@ -2,8 +2,8 @@ package coherence.mesi
 
 import coherence.Address
 import coherence.bus.{Bus, BusDelegate, MessageMetadata}
-import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
 import coherence.cache.CacheLine
+import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
 
 class Cache(id: Int,
             cacheSize: Int,
