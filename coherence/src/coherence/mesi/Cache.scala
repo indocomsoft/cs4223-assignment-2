@@ -136,6 +136,7 @@ class Cache(id: Int,
             ) =>
           cacheDelegate.requestCompleted(op)
           bus.relinquishAccess(this)
+          sets(setIndex).update(tag, CacheLine(State.M))
           state = CacheState.Ready()
         case _ => ()
       }
