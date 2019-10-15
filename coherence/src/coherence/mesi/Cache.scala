@@ -40,7 +40,8 @@ class Cache(id: Int,
           (tag, CacheLine(State.I) | CacheLine(State.E) | CacheLine(State.S))
           ) =>
         println(s"$this: Evicting ${Address(tag, setIndex)}")
-        ()
+        state = CacheState.WaitingForBus(sender, op)
+        bus.requestAccess(this)
     }
   }
 
@@ -231,6 +232,7 @@ class Cache(id: Int,
             case Reply.WriteBackOk() =>
               bus.relinquishAccess(this)
               state = CacheState.WaitingForBus(sender, op)
+              bus.requestAccess(this)
             case _ =>
               throw new RuntimeException(
                 s"$this: got $reply when state is $state"

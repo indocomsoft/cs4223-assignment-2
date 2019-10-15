@@ -16,7 +16,14 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
     println(s"Memory: before, maybeReply = $maybeReply")
     message match {
       case Message.BusUpgr() => ()
-      case Message.BusRd() | Message.BusRdX() | Message.Flush() =>
+      case Message.Flush() =>
+        maybeReply = Some(
+          (
+            ReplyMetadata(Reply.WriteBackOk(), 1),
+            currentCycle + AbstractMemory.Latency
+          )
+        )
+      case Message.BusRd() | Message.BusRdX() =>
         maybeReply = Some(
           (
             ReplyMetadata(Reply.MemoryRead(), blockSize),
