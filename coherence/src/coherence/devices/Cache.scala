@@ -51,7 +51,7 @@ abstract class Cache[State, Message, Reply](val id: Int,
 
   val numBlocks = cacheSize / blockSize
   val numSets = numBlocks / associativity
-  val offsetBits = Integer.numberOfLeadingZeros(blockSize)
+  val offsetBits = Integer.numberOfTrailingZeros(blockSize)
   val setIndexOffsetBits = Integer.numberOfTrailingZeros(numSets)
   val sets: Array[LRUCache[State]] =
     (1 to numSets).map(_ => new LRUCache[State](associativity)).toArray
