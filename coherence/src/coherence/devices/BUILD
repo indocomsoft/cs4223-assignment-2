@@ -39,6 +39,7 @@ scala_library(
         ":cache",
         ":device",
         ":processor_op",
+        "//src/coherence:debug",
     ],
 )
 

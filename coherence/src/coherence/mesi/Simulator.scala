@@ -1,5 +1,6 @@
 package coherence.mesi
 
+import coherence.Debug._
 import coherence.bus.Bus
 import coherence.devices.Processor
 
@@ -40,7 +41,7 @@ class Simulator(sources: List[Source],
     var currentCycle = 0
     while (processors.exists(!_.isFinished())) {
       currentCycle += 1
-      println(currentCycle)
+      println_debug(currentCycle)
       processors.foreach(_.cycle())
       memory.cycle()
       bus.cycle()

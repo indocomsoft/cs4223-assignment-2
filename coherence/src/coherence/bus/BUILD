@@ -8,6 +8,7 @@ scala_library(
         ":bus_delegate",
         ":message_metadata",
         "//src/coherence:address",
+        "//src/coherence:debug",
         "//src/coherence/devices:device",
     ],
 )

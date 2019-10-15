@@ -3,6 +3,8 @@ package coherence.bus
 import coherence.Address
 import coherence.devices.Device
 
+import coherence.Debug._
+
 import scala.collection.mutable
 
 object Bus {
@@ -63,7 +65,7 @@ class Bus[Message, Reply] extends Device {
         )
       state = BusState.Ready()
       needMarkEndMetadata = Some(MarkEndMetadata(owner, message, address))
-      println(s"Bus: after relinquish, state = $state")
+      println_debug(s"Bus: after relinquish, state = $state")
     }
 
     state match {
@@ -94,7 +96,7 @@ class Bus[Message, Reply] extends Device {
         )
         needMarkEndMetadata = None
     }
-    println(s"Bus: cycle $currentCycle before, state = $state")
+    println_debug(s"Bus: cycle $currentCycle before, state = $state")
     state match {
       case BusState.Ready() =>
         if (requests.nonEmpty) {
@@ -133,7 +135,7 @@ class Bus[Message, Reply] extends Device {
         }
       case BusState.RequestSent(_, _) => ()
     }
-    println(s"Bus: cycle $currentCycle after, state = $state")
+    println_debug(s"Bus: cycle $currentCycle after, state = $state")
   }
 
   /**

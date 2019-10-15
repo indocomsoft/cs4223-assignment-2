@@ -8,8 +8,7 @@ http_archive(
     url = "https://github.com/bazelbuild/rules_scala/archive/%s.zip" % rules_scala_version,
 )
 
-load("@io_bazel_rules_scala//scala:toolchains.bzl", "scala_register_unused_deps_toolchains")
-scala_register_unused_deps_toolchains()
+register_toolchains("//toolchains:my_scala_toolchain")
 
 load("@io_bazel_rules_scala//scala:scala.bzl", "scala_repositories")
 scala_repositories((

@@ -1,6 +1,7 @@
 package coherence.mesi
 
 import coherence.Address
+import coherence.Debug._
 import coherence.bus.{Bus, BusDelegate, MessageMetadata}
 import coherence.cache.CacheLine
 import coherence.devices.{CacheDelegate, CacheOp, Cache => CacheTrait}
@@ -33,13 +34,13 @@ class Cache(id: Int,
         bus.requestAccess(this)
       case Some((tag, CacheLine(State.M))) =>
         val address = Address(tag, setIndex)
-        println(s"$this: Evicting $address requires flush")
+        println_debug(s"$this: Evicting $address requires flush")
         state = CacheState.EvictWaitingForBus(address, sender, op)
         bus.requestAccess(this)
       case Some(
           (tag, CacheLine(State.I) | CacheLine(State.E) | CacheLine(State.S))
           ) =>
-        println(s"$this: Evicting ${Address(tag, setIndex)}")
+        println_debug(s"$this: Evicting ${Address(tag, setIndex)}")
         state = CacheState.WaitingForBus(sender, op)
         bus.requestAccess(this)
     }
@@ -90,7 +91,7 @@ class Cache(id: Int,
       case CacheState.WaitingForBus(sender, op) =>
         val address = toAddress(op.address)
         state = CacheState.WaitingForReplies(sender, op)
-        println(
+        println_debug(
           s"$this: op = $op, cacheLine = ${sets(address.setIndex).immutableGet(address.tag)}"
         )
         op match {
@@ -112,7 +113,7 @@ class Cache(id: Int,
         }
       case CacheState.EvictWaitingForBus(address, sender, op) =>
         state = CacheState.EvictWaitingForWriteback(address, sender, op)
-        println(s"$this: Eviction, flushing $address")
+        println_debug(s"$this: Eviction, flushing $address")
         MessageMetadata(Message.Flush(), address)
       case _ =>
         throw new RuntimeException(
@@ -127,7 +128,7 @@ class Cache(id: Int,
     require(maybeReply.isEmpty)
     val Address(tag, setIndex) = address
     val result = sets(setIndex).immutableGet(tag)
-    println(s"$this: address = $address, result = $result")
+    println_debug(s"$this: address = $address, result = $result")
     if (sender.eq(this)) {
       (state, result, message) match {
         case (
@@ -195,7 +196,7 @@ class Cache(id: Int,
     originalMessage: Message
   ): Unit =
     if (originalSender.eq(this)) {
-      println(
+      println_debug(
         s"$this: Got reply $reply addressed to me from $sender on address $address"
       )
       val Address(tag, setIndex) = address

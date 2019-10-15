@@ -25,3 +25,9 @@ scala_library(
     srcs = ["Address.scala"],
     visibility = ["//visibility:public"],
 )
+
+scala_library(
+    name = "debug",
+    srcs = ["Debug.scala"],
+    visibility = ["//visibility:public"],
+)

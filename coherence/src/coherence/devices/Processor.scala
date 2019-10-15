@@ -2,6 +2,8 @@ package coherence.devices
 
 import scala.io.Source
 
+import coherence.Debug._
+
 object Processor {
   def apply[State, Message, Reply](
     id: Int,
@@ -54,7 +56,7 @@ class Processor[Message, State, Reply](
 
   private[this] def performInstruction(): Unit = {
     if (currentOp.isEmpty) loadInstruction()
-    if (currentOp.isDefined) println(s"Processor $id: ${currentOp.get}")
+    if (currentOp.isDefined) println_debug(s"Processor $id: ${currentOp.get}")
     currentOp match {
       case None => status = Processor.Status.Finished()
       case Some(ProcessorOp.Other(numCycles)) =>
@@ -75,7 +77,7 @@ class Processor[Message, State, Reply](
   }
 
   override def requestCompleted(op: CacheOp): Unit = {
-    println(s"Processor $id: cache request completed, op $op")
+    println_debug(s"Processor $id: cache request completed, op $op")
 
     currentOp match {
       case Some(ProcessorOp.Load(_)) | Some(ProcessorOp.Store(_)) =>

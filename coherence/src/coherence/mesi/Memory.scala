@@ -1,5 +1,6 @@
 package coherence.mesi
 
+import coherence.Debug._
 import coherence.Address
 import coherence.bus.{Bus, BusDelegate, MessageMetadata, ReplyMetadata}
 import coherence.devices.{Memory => AbstractMemory}
@@ -13,7 +14,7 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
                                     address: Address,
                                     message: Message): Unit = {
     require(maybeReply.isEmpty)
-    println(s"Memory: before, maybeReply = $maybeReply")
+    println_debug(s"Memory: before, maybeReply = $maybeReply")
     message match {
       case Message.BusUpgr() => ()
       case Message.Flush() =>
@@ -31,7 +32,7 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
           )
         )
     }
-    println(s"Memory: after, maybeReply = $maybeReply")
+    println_debug(s"Memory: after, maybeReply = $maybeReply")
   }
 
   override def onBusCompleteResponse(
@@ -44,7 +45,9 @@ class Memory(bus: Bus[Message, Reply], blockSize: Int)
     case Reply.FlushOpt() =>
       maybeReply match {
         case Some((ReplyMetadata(Reply.MemoryRead(), _), _)) =>
-          println("Memory: received FLushOpt(), so setting maybeReply to None")
+          println_debug(
+            "Memory: received FLushOpt(), so setting maybeReply to None"
+          )
           maybeReply = None
         case None | Some(_) =>
           throw new RuntimeException(
