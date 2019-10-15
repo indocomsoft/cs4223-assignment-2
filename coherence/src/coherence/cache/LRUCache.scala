@@ -20,7 +20,7 @@ class LRUCache[State](val capacity: Int) {
     */
   def get(tag: Int): Option[CacheLine[State]] =
     if (data.contains(tag)) {
-      data.remove(tag).map(v => data.update(tag, v))
+      data.remove(tag).foreach(data.put(tag, _))
       data.get(tag)
     } else {
       numCacheMisses += 1
@@ -35,15 +35,20 @@ class LRUCache[State](val capacity: Int) {
     */
   def update(tag: Int,
              cacheLine: CacheLine[State]): Option[(Int, CacheLine[State])] = {
-    data.update(tag, cacheLine)
-    get(tag) match {
-      case Some(_) => None
-      case None =>
+    if (data.contains(tag)) {
+      data.remove(tag)
+      data.put(tag, cacheLine)
+      None
+    } else {
+      data.put(tag, cacheLine)
+      if (data.size > capacity) {
         data.headOption match {
-          case Some((key, _)) if data.size > capacity =>
-            data.remove(key).map((key, _))
-          case _ => None
+          case Some((key, _)) => data.remove(key).map((key, _))
+          case None           => None
         }
+      } else {
+        None
+      }
     }
   }
 
