@@ -53,7 +53,7 @@ class Cache(id: Int,
             sets(setIndex).get(tag) match {
               case None =>
                 maybeEvict(sender, op)
-              case None | Some(CacheLine(State.I)) =>
+              case Some(CacheLine(State.I)) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
               case Some(CacheLine(_)) =>
@@ -65,6 +65,8 @@ class Cache(id: Int,
             }
           case CacheOp.Store(_) =>
             sets(setIndex).get(tag) match {
+              case None =>
+                maybeEvict(sender, op)
               case Some(CacheLine(State.M)) =>
                 state =
                   CacheState.WaitingForResult(sender, op, currentCycle + 1)
@@ -72,7 +74,7 @@ class Cache(id: Int,
                 sets(setIndex).update(tag, CacheLine(State.M))
                 state =
                   CacheState.WaitingForResult(sender, op, currentCycle + 1)
-              case None | Some(CacheLine(State.I)) | Some(CacheLine(State.S)) =>
+              case Some(CacheLine(State.I)) | Some(CacheLine(State.S)) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
             }
