@@ -46,5 +46,9 @@ class Simulator(sources: List[Source],
       memory.cycle()
       bus.cycle()
     }
+    processors.foreach(
+      processor =>
+        println(s"$processor: Total cycle = ${processor.totalCycles}")
+    )
   }
 }

@@ -34,6 +34,8 @@ class Processor[Message, State, Reply](
   private[this] var currentOp: Option[ProcessorOp] = None
   private[this] var status: Processor.Status = Processor.Status.Ready()
 
+  def totalCycles: Long = currentCycle
+
   def isFinished(): Boolean = status match {
     case Processor.Status.Finished() => true
     case _                           => false
