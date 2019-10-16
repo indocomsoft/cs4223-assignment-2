@@ -1,0 +1,5 @@
+#!/bin/sh
+rm main_deploy.jar out.jar
+bazel build //src/coherence:main_deploy.jar
+cp bazel-bin/src/coherence/main_deploy.jar .
+proguard @proguard.rules
