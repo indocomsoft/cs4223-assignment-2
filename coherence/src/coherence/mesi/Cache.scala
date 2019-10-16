@@ -50,6 +50,7 @@ class Cache(id: Int,
     state match {
       case CacheState.Ready() =>
         val Address(tag, setIndex) = toAddress(op.address)
+        numRequests += 1
         op match {
           case CacheOp.Load(_) =>
             sets(setIndex).get(tag) match {
@@ -59,6 +60,7 @@ class Cache(id: Int,
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
               case Some(CacheLine(_)) =>
+                numHits += 1
                 state = CacheState.WaitingForResult(
                   sender,
                   op,

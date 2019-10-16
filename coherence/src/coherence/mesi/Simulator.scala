@@ -38,7 +38,7 @@ class Simulator(sources: List[Source],
       .toArray
 
   def run(): Unit = {
-    var currentCycle = 0
+    var currentCycle: Long = 0
     while (processors.exists(!_.isFinished())) {
       currentCycle += 1
       println_debug(currentCycle)
@@ -46,9 +46,38 @@ class Simulator(sources: List[Source],
       memory.cycle()
       bus.cycle()
     }
-    processors.foreach(
-      processor =>
-        println(s"$processor: Total cycle = ${processor.totalCycles}")
-    )
+    require(currentCycle == processors.map(_.totalCycles).max)
+    println("Summary")
+    println("======")
+    println(s"Overall execution cycle = $currentCycle")
+    println("Total execution cycles per core:")
+    processors.foreach { processor =>
+      println(s"- $processor = ${processor.totalCycles}")
+    }
+    println("======")
+    println("Number of compute cycles per core:")
+    processors.foreach { processor =>
+      println(s"- $processor = ${processor.totalComputeCycles}")
+    }
+    println("======")
+    println("Number of load/store instructions per core:")
+    processors.foreach { processor =>
+      println(
+        s"- $processor: Load = ${processor.numLoadInstructions}, Store = ${processor.numStoreInstructions}"
+      )
+    }
+    println("======")
+    println("Number of idle cycles")
+    processors.foreach { processor =>
+      println(s"- $processor = ${processor.numIdleCycles}")
+    }
+    println("======")
+    println("Data cache miss rate for each core")
+    processors.foreach { processor =>
+      println(
+        s"- $processor = ${processor.cache.cacheMissRate} (${processor.cache.numCacheMisses}/${processor.cache.totalRequests})"
+      )
+    }
+
   }
 }

@@ -8,12 +8,13 @@ object Cache {
   val HitLatency = 1
 }
 
-abstract class Cache[State, Message, Reply](val id: Int,
-                                            cacheSize: Int,
-                                            associativity: Int,
-                                            blockSize: Int,
-                                            val bus: Bus[Message, Reply])
-    extends Device
+abstract class Cache[State, Message, Reply](
+  val id: Int,
+  cacheSize: Int,
+  associativity: Int,
+  blockSize: Int,
+  protected val bus: Bus[Message, Reply]
+) extends Device
     with BusDelegate[Message, Reply] {
 
   sealed trait CacheState
@@ -49,16 +50,24 @@ abstract class Cache[State, Message, Reply](val id: Int,
         extends EvictCacheState
   }
 
-  val numBlocks = cacheSize / blockSize
-  val numSets = numBlocks / associativity
-  val offsetBits = Integer.numberOfTrailingZeros(blockSize)
-  val setIndexOffsetBits = Integer.numberOfTrailingZeros(numSets)
-  val sets: Array[LRUCache[State]] =
+  protected val numBlocks = cacheSize / blockSize
+  protected val numSets = numBlocks / associativity
+  protected val offsetBits = Integer.numberOfTrailingZeros(blockSize)
+  protected val setIndexOffsetBits = Integer.numberOfTrailingZeros(numSets)
+  protected val sets: Array[LRUCache[State]] =
     (1 to numSets).map(_ => new LRUCache[State](associativity)).toArray
 
   protected var currentCycle: Long = 0
   protected var state: CacheState = CacheState.Ready()
   protected var maybeReply: Option[Reply] = None
+
+  protected var numHits: Long = 0
+  protected var numRequests: Long = 0
+
+  def numCacheMisses: Long = numRequests - numHits
+  def numCacheHits: Long = numHits
+  def totalRequests: Long = numRequests
+  def cacheMissRate: Double = numCacheMisses.toDouble / numRequests.toDouble
 
   bus.addBusDelegate(this)
 
