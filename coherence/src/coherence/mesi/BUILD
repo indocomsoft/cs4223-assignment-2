@@ -12,6 +12,7 @@ scala_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":bus_statistics",
         ":cache",
         ":memory",
         ":message",
@@ -26,7 +27,9 @@ scala_library(
     srcs = [
         "Cache.scala",
     ],
+    exports = [":cache_statistics"],
     deps = [
+        ":cache_statistics",
         ":memory",
         ":message",
         ":state",
@@ -66,4 +69,23 @@ scala_library(
 scala_library(
     name = "reply",
     srcs = ["Reply.scala"],
+)
+
+scala_library(
+    name = "bus_statistics",
+    srcs = ["BusStatistics.scala"],
+    deps = [
+        ":message",
+        ":reply",
+        "//src/coherence/bus:bus_statistics",
+    ],
+)
+
+scala_library(
+    name = "cache_statistics",
+    srcs = ["CacheStatistics.scala"],
+    deps = [
+        ":state",
+        "//src/coherence/devices:cache_statistics",
+    ],
 )

@@ -54,6 +54,7 @@ scala_library(
     visibility = ["//visibility:public"],
     exports = [
         ":cache_delegate",
+        ":cache_statistics",
         ":cache_op",
         ":device",
         "//src/coherence/bus",
@@ -62,6 +63,7 @@ scala_library(
     ],
     deps = [
         ":cache_delegate",
+        ":cache_statistics",
         ":cache_op",
         ":device",
         "//src/coherence/bus",
@@ -80,4 +82,10 @@ scala_library(
     srcs = ["CacheDelegate.scala"],
     exports = [":cache_op"],
     deps = [":cache_op"],
+)
+
+scala_library(
+    name = "cache_statistics",
+    srcs = ["CacheStatistics.scala"],
+    visibility = ["//visibility:public"],
 )

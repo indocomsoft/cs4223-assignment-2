@@ -10,13 +10,15 @@ class Cache(id: Int,
             cacheSize: Int,
             associativity: Int,
             blockSize: Int,
-            bus: Bus[Message, Reply])
+            bus: Bus[Message, Reply],
+            stats: CacheStatistics[State])
     extends CacheTrait[State, Message, Reply](
       id,
       cacheSize,
       associativity,
       blockSize,
-      bus
+      bus,
+      stats
     ) {
   override def hasCopy(address: Address): Boolean = {
     val Address(tag, setIndex) = address
@@ -51,15 +53,20 @@ class Cache(id: Int,
       case CacheState.Ready() =>
         val Address(tag, setIndex) = toAddress(op.address)
         numRequests += 1
+        val result = sets(setIndex).get(tag)
+        result match {
+          case None                   => ()
+          case Some(CacheLine(state)) => stats.logState(state)
+        }
         op match {
           case CacheOp.Load(_) =>
-            sets(setIndex).get(tag) match {
+            result match {
               case None =>
                 maybeEvict(sender, op)
               case Some(CacheLine(State.I)) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
-              case Some(CacheLine(_)) =>
+              case Some(CacheLine(currentState)) =>
                 numHits += 1
                 state = CacheState.WaitingForResult(
                   sender,
@@ -68,7 +75,7 @@ class Cache(id: Int,
                 )
             }
           case CacheOp.Store(_) =>
-            sets(setIndex).get(tag) match {
+            result match {
               case None =>
                 maybeEvict(sender, op)
               case Some(CacheLine(State.M)) =>

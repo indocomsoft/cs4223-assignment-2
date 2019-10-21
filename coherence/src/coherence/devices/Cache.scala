@@ -13,7 +13,8 @@ abstract class Cache[State, Message, Reply](
   cacheSize: Int,
   associativity: Int,
   blockSize: Int,
-  protected val bus: Bus[Message, Reply]
+  protected val bus: Bus[Message, Reply],
+  val stats: CacheStatistics[State]
 ) extends Device
     with BusDelegate[Message, Reply] {
 

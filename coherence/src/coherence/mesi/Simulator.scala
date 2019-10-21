@@ -25,11 +25,19 @@ class Simulator(sources: List[Source],
                 cacheSize: Int,
                 associativity: Int,
                 blockSize: Int) {
-  private[this] val bus: Bus[Message, Reply] = new Bus[Message, Reply]()
+  private[this] val bus: Bus[Message, Reply] =
+    new Bus[Message, Reply](new BusStatistics())
   private[this] val memory: Memory = new Memory(bus, blockSize)
   private[this] val caches: Array[Cache] =
     (0 until Simulator.NumProcessors).map { id =>
-      new Cache(id, cacheSize, associativity, blockSize, bus)
+      new Cache(
+        id,
+        cacheSize,
+        associativity,
+        blockSize,
+        bus,
+        new CacheStatistics()
+      )
     }.toArray
   private[this] val processors: Array[Processor[State, Message, Reply]] =
     caches
@@ -76,6 +84,19 @@ class Simulator(sources: List[Source],
     processors.foreach { processor =>
       println(
         s"- $processor = ${processor.cache.cacheMissRate} (${processor.cache.numCacheMisses}/${processor.cache.totalRequests})"
+      )
+    }
+    println("======")
+    println("Amount of Data traffic in bytes on the bus")
+    println(s"= ${bus.stats.dataTraffic}")
+    println("======")
+    println("Number of invalidations or updates on the bus")
+    println(s"= ${bus.stats.numInvalidationUpdate}")
+    println("======")
+    println("Distribution of accesses to private data versus shared data")
+    caches.foreach { cache =>
+      println(
+        s"- $cache: numPrivateAccess = ${cache.stats.numPrivateAccess}, numSharedAccess = ${cache.stats.numSharedAccess}"
       )
     }
 

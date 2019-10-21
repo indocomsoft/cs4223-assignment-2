@@ -4,8 +4,12 @@ scala_library(
         "Bus.scala",
     ],
     visibility = ["//visibility:public"],
+    exports = [
+        ":bus_statistics",
+    ],
     deps = [
         ":bus_delegate",
+        ":bus_statistics",
         ":message_metadata",
         "//src/coherence:address",
         "//src/coherence:debug",
@@ -46,5 +50,15 @@ scala_library(
     srcs = [
         "ReplyMetadata.scala",
     ],
+    visibility = ["//visibility:public"],
+)
+
+scala_library(
+    name = "bus_statistics",
+    srcs = [
+        "BusStatistics.scala",
+    ],
+    deps = [":reply_metadata"],
+    exports = [":reply_metadata"],
     visibility = ["//visibility:public"],
 )

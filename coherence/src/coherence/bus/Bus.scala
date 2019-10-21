@@ -11,7 +11,8 @@ object Bus {
   val PerWordLatency = 2
 }
 
-class Bus[Message, Reply] extends Device {
+class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
+    extends Device {
   sealed trait BusState
   sealed trait ActiveBusState extends BusState {
     val messageMetadata: MessageMetadata[Message]
@@ -102,6 +103,7 @@ class Bus[Message, Reply] extends Device {
         if (requests.nonEmpty) {
           val device = requests.dequeue()
           val messageMetadata = device.busAccessGranted()
+          stats.logMessage(messageMetadata.message)
           state = BusState.ProcessingRequest(
             messageMetadata,
             device,
@@ -161,6 +163,7 @@ class Bus[Message, Reply] extends Device {
           sender,
           currentCycle + numWords * Bus.PerWordLatency
         )
+        stats.logReply(replyMetadata)
         true
     }
 
