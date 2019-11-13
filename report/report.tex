@@ -25,8 +25,56 @@ For these reasons as well as familiarity, we chose to implement our tracing simu
 Our code can be divided into 3 different parts: specific code for common code among all the protocols, the MESI Protocol trace simulator, and specific code for the Dragon Protocol trace simulator.
 
 \subsection{Common Code}
+Overall, our code uses the delegation pattern, where each device can choose to become a delegate of another device.
+This way, devices can have a two-way communication of some sort.
+The devices themselves are designed as Finite State Machines (FSM) to allow for more robust code.
 
-\subsection{MESI Protocol}
+\subsubsection{\texttt{coherence.bus}}
+Across the different protocols, we use the same bus implementation located in the \texttt{coherence.bus} package.
+
+The design that we chose for our bus is \textbf{an atomic bus}, where one cache is granted exclusive access to the bus to perform one transaction (a transaction is defined as the cache granted exclusive access placing command on the bus, and then receiving response by other caches).
+There are some potential issues that may prevent correctness in this concurrent system, namely deadlock, livelock, starvation and race conditions.
+As I explain the design of our atomic bus, I will mention how do we prevent these problems from happening.
+
+When a device wants to place command on the bus, it has to first request access from the bus, and the device has to be a \texttt{BusDelegate}.
+This ensures that a cache will have exclusive access to the bus, with the bus arbitrer acting like a mutex lock.
+The bus arbitrer uses a first come first serve arbitration policy to prevent starvation.
+
+When the bus arbitrer decides that it is the turn for one \texttt{BusDelegate} to obtain exclusive access to the bus, the bus will invoke \texttt{busAccessGranted()} on the \texttt{BusDelegate} to obtain the command that the device wants to place on the bus.
+This is to prevent race condition, because the transition of the states of the cache lines are not actually atomic even though the bus is atomic.
+Consider the case in MESI protocol when Processors P1 and P2 write to cache line A simultaneously (both need to issue \texttt{BusUpgr} to move the line from the \texttt{S} state to the \texttt{M} state). Suppose P1 wins bus access and places \texttt{BusUpgr} on the bus.
+P2 is still waiting for bus access to place its own \texttt{BusUpgr}, but it cannot proceed because P1 has exclusive access to the bus.
+P2 then receives \texttt{BusUpgr} from \texttt{P1}, thus it must invalidate line A according to the MESI protocol.
+As such, P2 must also change its pending \texttt{BusUpgr} request to a \texttt{BusRdX}.
+With our design, we will only ask the cache what command to place on the bus when they are granted access, thus allowing the caches to change the command that they send between the moments access is requested and access is granted.
+
+After a device places a command on the bus, \texttt{onBusCompleteMessage} method on all other devices as \texttt{BusDelegate} will get invoked.
+This allows them to make internal state transitions in response to the command on the bus, as well as place their response on the bus.
+The bus will arbitrarily grant one device to place their response on the bus.
+Once the device having exclusive access to the bus decided that it has received enough responses, it will indicate to the bus that it wishes to relinquish its exclusive access.
+This fact is propagated to all other devices through invocation of the \texttt{onBusTransactionEnd} of the \texttt{BusDelegate}.
+The bus will then pick another pending access request, and perform the same cycle all over again.
+Note that to avoid livelock, the device that obtains exclusive access must be allowed to complete before exclusive access is relinquished, thus our design of letting the device decide when to relinquish exclusive access of the bus.
+Consider two processors P1 and P2 writing to cache block B using MESI cache coherency protocol.
+First, P1 acquired access to the bus and issues \texttt{BusRdX}, resulting in P2 invalidating its cache line.
+However, without exclusive ownership, this scenario can happen: before P1 can perform the write, P2 acquires bus, issues \texttt{BusRdX}, resulting in P1 invalidating its cache line, and so on so forth, which results in a livelock.
+
+\subsubsection{\texttt{coherence.devices}}
+
+\subsubsection{\texttt{Main.scala} and \texttt{Protocol.scala}}
+This is the main driver code of the simulator.
+It takes in arguments passed by user and parses them into the appropriate types, such as \texttt{Int}, \texttt{String} and \texttt{Protocol}.
+\texttt{Protocol} is actually defined inside \texttt{Protocol.scala}, which is an enumeration of supported cache coherency protocols.
+In our case we have \texttt{MESI} and \texttt{Dragon}.
+If all the arguments are parsed successfully, the appropriate tracing simulator is then invoked.
+
+\subsubsection{\texttt{Debug.scala}}
+This file provides code for debug printing that can be elided for final production code.
+
+\subsubsection{\texttt{Address.scala}}
+This file provides the case class for addressing in an n-way associative cache through tag and set index.
+
+\subsection{MESI Protocol (\texttt{coherence.mesi})}
 
 \subsection{Dragon Protocol}
 
