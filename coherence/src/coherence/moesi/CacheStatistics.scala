@@ -21,7 +21,8 @@ class CacheStatistics[State] extends AbstractCacheStatistics[State] {
       case _: State.M.type => _numPrivateAccess += 1
       case _: State.E.type | _: State.S.type | _: State.O.type =>
         _numSharedAccess += 1
-      // case _: State.I.type => ()
+      case _: State.I.type =>
+        throw new RuntimeException("Unexpected state I logged")
     }
   }
 }
