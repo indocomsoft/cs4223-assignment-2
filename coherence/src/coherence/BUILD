@@ -7,6 +7,7 @@ scala_binary(
     deps = [
         ":protocol",
         "//src/coherence/mesi:simulator",
+        "//src/coherence/moesi:simulator",
     ],
 )
 
