@@ -98,6 +98,8 @@ class Processor[Message, State, Reply](
   override def requestCompleted(op: CacheOp): Unit = {
     println_debug(s"Processor $id: cache request completed, op $op")
 
+    cache.log(op.address)
+
     currentOp match {
       case Some(ProcessorOp.Load(_)) | Some(ProcessorOp.Store(_)) =>
         numIdle += 1

@@ -1,6 +1,7 @@
 package coherence
 
 import coherence.mesi.{Simulator => MESISimulator}
+import coherence.moesi.{Simulator => MOESISimulator}
 
 case class Input(protocol: Protocol.Value,
                  prefix: String,
@@ -28,10 +29,15 @@ object Main extends App {
           )
         eitherInput match {
           case Right(
-              Input(Protocol.MESI, prefix, cacheSize, associativity, blockSize)
+              Input(protocol, prefix, cacheSize, associativity, blockSize)
               ) =>
-            MESISimulator(prefix, cacheSize, associativity, blockSize).run()
-          case Right(input) => ???
+            protocol match {
+              case Protocol.MESI =>
+                MESISimulator(prefix, cacheSize, associativity, blockSize).run()
+              case Protocol.MOESI =>
+                MOESISimulator(prefix, cacheSize, associativity, blockSize)
+                  .run()
+            }
           case Left(errorMessage) =>
             printUsage(errorMessage)
         }

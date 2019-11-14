@@ -34,7 +34,7 @@ class Cache(id: Int,
       case None =>
         state = CacheState.WaitingForBus(sender, op)
         bus.requestAccess(this)
-      case Some((tag, CacheLine(State.M))) =>
+      case Some((tag, CacheLine(State.M) | CacheLine(State.O))) =>
         val address = Address(tag, setIndex)
         println_debug(s"$this: Evicting $address requires flush")
         state = CacheState.EvictWaitingForBus(address, sender, op)
@@ -54,10 +54,6 @@ class Cache(id: Int,
         val Address(tag, setIndex) = toAddress(op.address)
         numRequests += 1
         val result = sets(setIndex).get(tag)
-        result match {
-          case None                   => ()
-          case Some(CacheLine(state)) => stats.logState(state)
-        }
         op match {
           case CacheOp.Load(_) =>
             result match {
@@ -85,7 +81,9 @@ class Cache(id: Int,
                 sets(setIndex).update(tag, CacheLine(State.M))
                 state =
                   CacheState.WaitingForResult(sender, op, currentCycle + 1)
-              case Some(CacheLine(State.I)) | Some(CacheLine(State.S)) =>
+              case Some(
+                  CacheLine(State.I) | CacheLine(State.S) | CacheLine(State.O)
+                  ) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
             }
@@ -109,7 +107,7 @@ class Cache(id: Int,
           case CacheOp.Store(_) =>
             val Address(tag, setIndex) = address
             sets(setIndex).immutableGet(tag) match {
-              case Some(CacheLine(State.S)) =>
+              case Some(CacheLine(State.S) | CacheLine(State.O)) =>
                 state = CacheState.WaitingForBusUpgrPropagation(sender, op)
                 MessageMetadata(Message.BusUpgr(), address)
               case None | Some(CacheLine(State.I)) =>
@@ -142,13 +140,13 @@ class Cache(id: Int,
       (state, result, message) match {
         case (
             CacheState.WaitingForBusUpgrPropagation(cacheDelegate, op),
-            Some(CacheLine(State.S)),
+            Some(CacheLine(State.S) | CacheLine(State.O)),
             Message.BusUpgr()
             ) =>
-          cacheDelegate.requestCompleted(op)
           bus.relinquishAccess(this)
           sets(setIndex).update(tag, CacheLine(State.M))
           state = CacheState.Ready()
+          cacheDelegate.requestCompleted(op)
         case _ => ()
       }
     } else {
@@ -156,8 +154,8 @@ class Cache(id: Int,
         case Some(CacheLine(State.M)) =>
           message match {
             case Message.BusRd() =>
-              sets(setIndex).update(tag, CacheLine(State.S))
-              maybeReply = Some(Reply.Flush())
+              sets(setIndex).update(tag, CacheLine(State.O))
+              maybeReply = Some(Reply.FlushOpt())
             case Message.BusRdX() =>
               sets(setIndex).update(tag, CacheLine(State.I))
               maybeReply = Some(Reply.Flush())
@@ -181,7 +179,7 @@ class Cache(id: Int,
               )
             case Message.Flush() => ()
           }
-        case Some(CacheLine(State.S)) =>
+        case Some(CacheLine(State.S) | CacheLine(State.O)) =>
           message match {
             case Message.BusRd() =>
               maybeReply = Some(Reply.FlushOpt())
@@ -214,9 +212,9 @@ class Cache(id: Int,
           reply match {
             case Reply.FlushOpt() | Reply.MemoryRead() =>
               bus.relinquishAccess(this)
-              sender.requestCompleted(op)
               state = CacheState.Ready()
               commitChange(op, address, reply)
+              sender.requestCompleted(op)
             case Reply.Flush() =>
               state = CacheState.WaitingForWriteback(sender, op)
             case Reply.WriteBackOk() =>
@@ -228,9 +226,9 @@ class Cache(id: Int,
           reply match {
             case Reply.WriteBackOk() =>
               bus.relinquishAccess(this)
-              sender.requestCompleted(op)
               state = CacheState.Ready()
               commitChange(op, address, reply)
+              sender.requestCompleted(op)
             case _ =>
               throw new RuntimeException(
                 s"$this: got $reply when state is $state"

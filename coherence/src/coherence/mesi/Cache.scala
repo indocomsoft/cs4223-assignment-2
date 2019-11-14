@@ -54,10 +54,6 @@ class Cache(id: Int,
         val Address(tag, setIndex) = toAddress(op.address)
         numRequests += 1
         val result = sets(setIndex).get(tag)
-        result match {
-          case None                   => ()
-          case Some(CacheLine(state)) => stats.logState(state)
-        }
         op match {
           case CacheOp.Load(_) =>
             result match {
@@ -145,10 +141,10 @@ class Cache(id: Int,
             Some(CacheLine(State.S)),
             Message.BusUpgr()
             ) =>
-          cacheDelegate.requestCompleted(op)
           bus.relinquishAccess(this)
           sets(setIndex).update(tag, CacheLine(State.M))
           state = CacheState.Ready()
+          cacheDelegate.requestCompleted(op)
         case _ => ()
       }
     } else {
@@ -214,9 +210,9 @@ class Cache(id: Int,
           reply match {
             case Reply.FlushOpt() | Reply.MemoryRead() =>
               bus.relinquishAccess(this)
-              sender.requestCompleted(op)
               state = CacheState.Ready()
               commitChange(op, address, reply)
+              sender.requestCompleted(op)
             case Reply.Flush() =>
               state = CacheState.WaitingForWriteback(sender, op)
             case Reply.WriteBackOk() =>
@@ -228,9 +224,9 @@ class Cache(id: Int,
           reply match {
             case Reply.WriteBackOk() =>
               bus.relinquishAccess(this)
-              sender.requestCompleted(op)
               state = CacheState.Ready()
               commitChange(op, address, reply)
+              sender.requestCompleted(op)
             case _ =>
               throw new RuntimeException(
                 s"$this: got $reply when state is $state"

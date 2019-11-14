@@ -2,7 +2,7 @@ package coherence.devices
 
 import coherence.Address
 import coherence.bus.{Bus, BusDelegate, ReplyMetadata}
-import coherence.cache.LRUCache
+import coherence.cache.{CacheLine, LRUCache}
 
 object Cache {
   val HitLatency = 1
@@ -89,6 +89,15 @@ abstract class Cache[State, Message, Reply](
               maybeReply = None
             }
         }
+    }
+  }
+
+  def log(address: Long): Unit = {
+    val Address(tag, setIndex) = toAddress(address)
+    sets(setIndex).immutableGet(tag) match {
+      case Some(CacheLine(state)) => stats.logState(state)
+      case None =>
+        throw new RuntimeException(s"$this: Unexpected missing cache line")
     }
   }
 

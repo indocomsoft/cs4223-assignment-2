@@ -13,6 +13,6 @@ class CacheStatistics[State] extends AbstractCacheStatistics[State] {
     state match {
       case _: State.M.type                   => _numPrivateAccess += 1
       case _: State.E.type | _: State.S.type => _numSharedAccess += 1
-      case _: State.I.type                   => ()
+      // case _: State.I.type                   => ()
     }
 }

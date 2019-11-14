@@ -99,6 +99,12 @@ class Simulator(sources: List[Source],
         s"- $cache: numPrivateAccess = ${cache.stats.numPrivateAccess}, numSharedAccess = ${cache.stats.numSharedAccess}"
       )
     }
-
+    println("======")
+    println("Number of times each state is entered")
+    caches.foreach { cache =>
+      println(
+        s"- $cache: numO = ${cache.stats.asInstanceOf[CacheStatistics[State]].numO}"
+      )
+    }
   }
 }
