@@ -1,0 +1,18 @@
+digraph processor {
+  rankdir=LR;
+  dpi=600;
+
+  node [shape = point] Start;
+  node [shape = circle] Ready;
+  node [shape = circle] Operation;
+  node [shape = circle] Cache;
+  node [shape = circle] Finished;
+
+  Start -> Ready;
+  Ready -> Operation;
+  Operation -> Ready;
+  Ready -> Cache;
+  Cache -> Ready;
+  Ready -> Finished;
+  Finished -> Finished;
+}

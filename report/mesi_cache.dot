@@ -1,0 +1,30 @@
+digraph mesi_cache {
+  rankdir=LR;
+  overlap = scale;
+  dpi=600;
+
+  node [shape = point] Start;
+  node [shape = oval] Ready;
+  node [shape = oval] WaitingForBus
+  node [shape = oval] WaitingForReplies
+  node [shape = oval] WaitingForWriteback
+  node [shape = oval] WaitingForResult
+  node [shape = oval] WaitingForBusUpgrPropagation
+  node [shape = oval] EvictWaitingForBus
+  node [shape = oval] EvictWaitingForWriteback
+
+  Start -> Ready;
+  Ready -> Ready;
+  Ready -> WaitingForResult;
+  WaitingForResult -> Ready;
+  Ready -> EvictWaitingForBus;
+  EvictWaitingForBus -> EvictWaitingForWriteback;
+  EvictWaitingForWriteback -> WaitingForBus;
+  Ready -> WaitingForBus;
+  WaitingForBus -> WaitingForReplies;
+  WaitingForReplies -> Ready;
+  WaitingForReplies -> WaitingForWriteback;
+  WaitingForWriteback -> Ready;
+  WaitingForBus -> WaitingForBusUpgrPropagation;
+  WaitingForBusUpgrPropagation -> Ready;
+}

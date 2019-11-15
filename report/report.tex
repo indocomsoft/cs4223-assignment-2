@@ -1,10 +1,10 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[nonacm,acmsmall,screen,11pt]{acmart}
 
-\usepackage[cm]{fullpage}
+\usepackage{graphviz}
 
-\title{CS4223 Assignment 2}
-\author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A...)}
-\date{15 November 2019}
+\title{CS4223 Assignment 2: Design and Implementation of Tracing Simulator for MESI, MOESI and Dragon Cache Coherency Protocols}
+\author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A0155181J)}
+\makeatletter\let\@authorsaddresses\@empty\makeatother%
 
 \begin{document}
 \maketitle
@@ -19,49 +19,21 @@ While Python's dynamic typing allows more rapid prototyping, a better compile-ti
 Haskell seems to fit the bill really well here.
 However, since we are essentially simulating a mutable, eagerly-evaluating von Neumann architecture machine, Haskell's characteristic of being immutable and lazy can become an impediment.
 We need a language that has some of Haskell's features such as being strongly and statically typed, pattern matching and ADT, while still allowing us to have mutability.
-For these reasons as well as familiarity, we chose to implement our tracing simulator using \textbf{Scala}.
+There are some candidates, such as Scala, Rust and OCaml.
+For these reasons as well as familiarity, completeness of the standard library and availabilities of third party libraries we chose to implement our tracing simulator using \textbf{Scala}.
 
 \section{Implementation}
-Our code can be divided into 3 different parts: specific code for common code among all the protocols, the MESI Protocol trace simulator, and specific code for the Dragon Protocol trace simulator.
+Our code can be divided into 2 large parts: common code for all the protocols, and the specific code for the trace simulator of each cache coherency protocols.
 
-\subsection{Common Code}
 Overall, our code uses the delegation pattern, where each device can choose to become a delegate of another device.
 This way, devices can have a two-way communication of some sort.
 The devices themselves are designed as Finite State Machines (FSM) to allow for more robust code.
 
-\subsubsection{\texttt{coherence.bus}}
-Across the different protocols, we use the same bus implementation located in the \texttt{coherence.bus} package.
+There are some potential issues that may prevent correctness in this concurrent system, namely deadlock, livelock, starvation and race conditions \cite{Culler:1998:PCA:2821564}.
+As we explain the design of the devices in our simulator, we will mention how we try to prevent these problems from happening.
 
-The design that we chose for our bus is \textbf{an atomic bus}, where one cache is granted exclusive access to the bus to perform one transaction (a transaction is defined as the cache granted exclusive access placing command on the bus, and then receiving response by other caches).
-There are some potential issues that may prevent correctness in this concurrent system, namely deadlock, livelock, starvation and race conditions.
-As I explain the design of our atomic bus, I will mention how do we prevent these problems from happening.
 
-When a device wants to place command on the bus, it has to first request access from the bus, and the device has to be a \texttt{BusDelegate}.
-This ensures that a cache will have exclusive access to the bus, with the bus arbitrer acting like a mutex lock.
-The bus arbitrer uses a first come first serve arbitration policy to prevent starvation.
-
-When the bus arbitrer decides that it is the turn for one \texttt{BusDelegate} to obtain exclusive access to the bus, the bus will invoke \texttt{busAccessGranted()} on the \texttt{BusDelegate} to obtain the command that the device wants to place on the bus.
-This is to prevent race condition, because the transition of the states of the cache lines are not actually atomic even though the bus is atomic.
-Consider the case in MESI protocol when Processors P1 and P2 write to cache line A simultaneously (both need to issue \texttt{BusUpgr} to move the line from the \texttt{S} state to the \texttt{M} state). Suppose P1 wins bus access and places \texttt{BusUpgr} on the bus.
-P2 is still waiting for bus access to place its own \texttt{BusUpgr}, but it cannot proceed because P1 has exclusive access to the bus.
-P2 then receives \texttt{BusUpgr} from \texttt{P1}, thus it must invalidate line A according to the MESI protocol.
-As such, P2 must also change its pending \texttt{BusUpgr} request to a \texttt{BusRdX}.
-With our design, we will only ask the cache what command to place on the bus when they are granted access, thus allowing the caches to change the command that they send between the moments access is requested and access is granted.
-
-After a device places a command on the bus, \texttt{onBusCompleteMessage} method on all other devices as \texttt{BusDelegate} will get invoked.
-This allows them to make internal state transitions in response to the command on the bus, as well as place their response on the bus.
-The bus will arbitrarily grant one device to place their response on the bus.
-Once the device having exclusive access to the bus decided that it has received enough responses, it will indicate to the bus that it wishes to relinquish its exclusive access.
-This fact is propagated to all other devices through invocation of the \texttt{onBusTransactionEnd} of the \texttt{BusDelegate}.
-The bus will then pick another pending access request, and perform the same cycle all over again.
-Note that to avoid livelock, the device that obtains exclusive access must be allowed to complete before exclusive access is relinquished, thus our design of letting the device decide when to relinquish exclusive access of the bus.
-Consider two processors P1 and P2 writing to cache block B using MESI cache coherency protocol.
-First, P1 acquired access to the bus and issues \texttt{BusRdX}, resulting in P2 invalidating its cache line.
-However, without exclusive ownership, this scenario can happen: before P1 can perform the write, P2 acquires bus, issues \texttt{BusRdX}, resulting in P1 invalidating its cache line, and so on so forth, which results in a livelock.
-
-\subsubsection{\texttt{coherence.devices}}
-
-\subsubsection{\texttt{Main.scala} and \texttt{Protocol.scala}}
+\subsection{\texttt{Main.scala} and \texttt{Protocol.scala}}
 This is the main driver code of the simulator.
 It takes in arguments passed by user and parses them into the appropriate types, such as \texttt{Int}, \texttt{String} and \texttt{Protocol}.
 \texttt{Protocol} is actually defined inside \texttt{Protocol.scala}, which is an enumeration of supported cache coherency protocols.
@@ -74,6 +46,130 @@ This file provides code for debug printing that can be elided for final producti
 \subsubsection{\texttt{Address.scala}}
 This file provides the case class for addressing in an n-way associative cache through tag and set index.
 
+\subsection{\texttt{coherence.bus}}
+
+\subsubsection{\texttt{Bus}}
+Across the different protocols, we use the same bus implementation. The design that we chose for our bus is \textbf{an atomic bus}, where one cache is granted exclusive access to the bus to perform one transaction (a transaction is defined as the cache granted exclusive access placing command on the bus, and then receiving response by other caches).
+
+When a device wants to place command on the bus, it has to first request access from the bus, and the device has to be a \texttt{BusDelegate}.
+This ensures that a cache will have exclusive access to the bus, with the bus arbitrer acting like a mutex lock.
+The bus arbitrer uses a first come first serve arbitration policy to \emph{prevent starvation}.
+
+When the bus arbitrer decides that it is the turn for one \texttt{BusDelegate} to obtain exclusive access to the bus, the bus will invoke \texttt{busAccessGranted()} on the \texttt{BusDelegate} to obtain the command that the device wants to place on the bus.
+This is to \emph{prevent race condition}, because the transition of the states of the cache lines are not actually atomic even though the bus is atomic.
+Consider the case in MESI protocol when Processors P1 and P2 write to cache line A simultaneously (both need to issue \texttt{BusUpgr} to move the line from the \texttt{S} state to the \texttt{M} state). Suppose P1 wins bus access and places \texttt{BusUpgr} on the bus.
+P2 is still waiting for bus access to place its own \texttt{BusUpgr}, but it cannot proceed because P1 has exclusive access to the bus.
+P2 then receives \texttt{BusUpgr} from \texttt{P1}, thus it must invalidate line A according to the MESI protocol.
+As such, P2 must also change its pending \texttt{BusUpgr} request to a \texttt{BusRdX}.
+With our design, we will only ask the cache what command to place on the bus when they are granted access, thus allowing the caches to change the command that they send between the moments access is requested and access is granted.
+
+After a device places a command on the bus, \texttt{onBusCompleteMessage} method on all other devices as \texttt{BusDelegate} will get invoked.
+This allows them to make internal state transitions in response to the command on the bus, as well as place their response on the bus.
+The bus will arbitrarily grant one device to place their response on the bus.
+Once the device having exclusive access to the bus decided that it has received enough responses, it will indicate to the bus that it wishes to relinquish its exclusive access.
+This fact is propagated to all other devices through invocation of the \texttt{onBusTransactionEnd} of the \texttt{BusDelegate}.
+The bus will then pick another pending access request, and perform the same cycle all over again.
+Note that to \emph{avoid livelock}, the device that obtains exclusive access must be allowed to complete before exclusive access is relinquished, thus our design of letting the device decide when to relinquish exclusive access of the bus.
+Consider two processors P1 and P2 writing to cache block B using MESI cache coherency protocol.
+First, P1 acquired access to the bus and issues \texttt{BusRdX}, resulting in P2 invalidating its cache line.
+However, without exclusive ownership, this scenario can happen: before P1 can perform the write, P2 acquires bus, issues \texttt{BusRdX}, resulting in P1 invalidating its cache line, and so on so forth, which results in a livelock.
+
+Note that in our bus design, each device connected to the bus is not blocked on requesting access to the bus.
+They are still able to service incoming transactions while waiting to be granted exclusive access to the bus.
+This is done to \emph{prevent protocol-level deadlock}, sometimes called \emph{fetch-deadlock} \cite{Culler:1998:PCA:2821564}.
+
+\subsubsection{\texttt{BusDelegate}}
+Specifies the hooks in a device that wants to hear back from the \texttt{Bus} regarding events on the Bus.
+Of interest is the \texttt{hasCopy} method, which is invoked in order to check the ``SHARED'' OR line, required by the protocols to check whether a particular cache line already exists in the other caches.
+
+\subsubsection{\texttt{BusStatistics}}
+This is a ``template'' for each protocol to provide a class that takes note of statistics in the \texttt{Bus}
+
+\subsubsection{\texttt{MessageMetadata}}
+A case class that stores the message that a cache wants to place on the bus, as well as the address affected by that message.
+The size of each message here is assumed to be 1 word long.
+
+\subsubsection{\texttt{ReplyMetadata}}
+A case class that stores the reply from other caches, as well as the size of the reply.
+The size here will be used in the calculation of how long it takes to transmit the reply and associated data on the Bus.
+
+\subsection{\texttt{coherence.cache}}
+This package contains classes necessary to build a cache with a Least Recently Used (LRU) cache eviction policy and where each cache line stores a state.
+
+\subsubsection{\texttt{LRUCache}}
+This is a simple cache with LRU cache eviction policy that can be used for each set in an n-way associative cache.
+It is implemented on top of Java's built-in \texttt{LinkedHashMap} which uses a hash table and linked list to keep track of the order of when an item was last used.
+
+\subsubsection{\texttt{CacheLine}}
+This is a simple case class representing a cache line.
+It is generic in the type parameter \texttt{State}, and stores only the state of this cache line.
+
+\subsection{\texttt{coherence.devices}}
+This package contains mostly the ``template'' for each type of specific devices.
+This helps to keep our code DRY\footnote{Don't Repeat Yourself, one important Software Engineering Principle} as the common code among all the protocol are put here.
+
+\subsubsection{\texttt{Device}}
+A simple ``template'' for all devices in the simulator.
+It only requires that every device has a method \texttt{cycle()} which is invoked to notify the device to advance one cycle and perform what they need to do in a cycle.
+
+\subsubsection{\texttt{Memory}}
+This is the ``template'' for a memory in each protocol.
+The memory will always return false as it is the identity value in the OR operation on the shared line, thus the memory will not affect the ``SHARED'' OR line.
+
+\subsubsection{\texttt{Processor}}
+This is a concrete class that represents a processor in the simulator.
+Each processor owns a cache, where the procesor is the cache's \texttt{CacheDelegate}.
+It is an FSM with 4 states, with transitions as shown in Figure~\ref{fig:processor}:
+\begin{itemize}
+  \item \texttt{Ready} -- the processor is ready to execute the next instruction.
+  \item \texttt{Operation} -- the processor is currently executing a non-memory instruction
+  \item \texttt{Cache} -- the processor is waiting for the result of a memory instruction from its cache
+  \item \texttt{Finished} -- the processor has no more instruction to execute
+\end{itemize}
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=0.3\textwidth]{processor}
+  \caption{The state diagram for the processor}
+  \label{fig:processor}
+\end{figure}
+
+\subsubsection{\texttt{ProcessorOp}}
+This trait is effectively an ADT representing the three possible instructions: the memory instructions \texttt{Load} and \texttt{Store} which has the address as the associated value as well as the non-memory instruction \texttt{Other} with the number of cycles required for execution as the associated value.
+The associated singleton object of the \texttt{ProcessorOp} trait provides a function to parse each line in the input trace into a \texttt{ProcessorOp}.
+
+\subsubsection{\texttt{Cache}}
+This is the ``template'' for the protocol-specific implementation of the cache.
+The cache is an FSM with 8 states, whereby each state will inform the cache about what to do with regards to the bus:
+\begin{itemize}
+  \item \texttt{Ready} -- the cache is ready to accept commands from the processor
+  \item \texttt{WaitingForBus} -- the cache has requested access to the bus but is waiting for that access to be granted
+  \item \texttt{WaitingForReplies} -- the cache has exclusive access to the bus and has placed a message on the bus, and is waiting for replies from the other caches.
+  \item \texttt{WaitingForWriteback} -- the cache has exclusive access to the bus and has snooped a Flush request, and is currently waiting for the memory to acknowledge that the writeback succeeded.
+  \item \texttt{WaitingForResult} -- the cache has the cache line requested, and that cache line is valid, and the cache is currently experiencing its hit latency.
+  \item \texttt{WaitingForBusUpgrPropagation} -- the cache sent a \texttt{BusUpgr} message and is waiting for the message to reach the other caches such that the other caches will invalidate their cache lines.
+  \item \texttt{EvictWaitingForBus} -- the cache needs to evict a cache line, has requested access to the bus and is currently waiting for that access to be granted.
+  \item \texttt{EvictWaitingForWriteback} -- the cache currently has exclusive access to the bus and has placed the flush command on the bus and is waiting for the memory to acknowledge the writeback.
+\end{itemize}
+
+The state transitions are shown in Figure~\ref{fig:mesi_cache}
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=\textwidth]{mesi_cache}
+  \caption{The state diagram for the cache}
+  \label{fig:mesi_cache}
+\end{figure}
+
+\subsubsection{\texttt{CacheDelegate}}
+This is the ``template'' for a cache delegate, which requires only one method, \texttt{requestCompleted} which is invoked when the operation is complete.
+
+\subsubsection{\texttt{CacheOp}}
+An ADT representing the possible cache operations.
+
+\subsubsection{\texttt{CacheStatistics}}
+This is a ``template'' for each protocol to provide a class that takes note of statistics in the \texttt{Cache}
+
 \subsection{MESI Protocol (\texttt{coherence.mesi})}
 
 \subsection{Dragon Protocol}
@@ -81,4 +177,7 @@ This file provides the case class for addressing in an n-way associative cache t
 \section{Quantitative Analysis}
 
 \section{Advanced Task: Optimisation to Basic MESI Protocol}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{report}
 \end{document}
