@@ -11,8 +11,8 @@ class CacheStatistics[State] extends AbstractCacheStatistics[State] {
 
   override def logState(state: State): Unit =
     state match {
-      case _: State.M.type                   => _numPrivateAccess += 1
-      case _: State.E.type | _: State.S.type => _numSharedAccess += 1
+      case _: State.M.type | _: State.E.type => _numPrivateAccess += 1
+      case _: State.S.type                   => _numSharedAccess += 1
       case _: State.I.type =>
         throw new RuntimeException("Unexpected state I logged")
     }
