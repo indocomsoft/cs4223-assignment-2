@@ -168,6 +168,28 @@ class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
         true
     }
 
+  def sendAnotherMessage(sender: BusDelegate[Message, Reply],
+                         messageMetadata: MessageMetadata[Message]): Unit = {
+    state match {
+      case BusState.RequestSent(_, owner) =>
+        if (!sender.eq(owner))
+          throw new RuntimeException(
+            "Bus: unexpected sendAnotherMessage from a BusDelegate without access to bus"
+          )
+        stats.logMessage(messageMetadata.message)
+        val numWords = (messageMetadata.size - 1) / 8 + 1
+        state = BusState.ProcessingRequest(
+          messageMetadata,
+          device,
+          currentCycle + numWords * Bus.PerWordLatency
+        )
+      case _ =>
+        throw new RuntimeException(
+          s"Bus: unexpected sendAnotherMessage when state is $state"
+        )
+    }
+  }
+
   def isShared(address: Address): Boolean =
     devices.map(_.hasCopy(address)).reduce(_ || _)
 }
