@@ -74,10 +74,10 @@ class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
         throw new RuntimeException(
           s"Bus: relinquishAccess called on state $state"
         )
-      case BusState.RequestSent(MessageMetadata(message, address), owner) =>
+      case BusState.RequestSent(MessageMetadata(message, address, _), owner) =>
         helper(owner, message, address)
       case BusState.ProcessingReply(
-          MessageMetadata(message, address),
+          MessageMetadata(message, address, _),
           owner,
           _,
           _,
@@ -104,14 +104,15 @@ class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
           val device = requests.dequeue()
           val messageMetadata = device.busAccessGranted()
           stats.logMessage(messageMetadata.message)
+          val numWords = (messageMetadata.size - 1) / 8 + 1
           state = BusState.ProcessingRequest(
             messageMetadata,
             device,
-            currentCycle + Bus.PerWordLatency
+            currentCycle + numWords * Bus.PerWordLatency
           )
         }
       case BusState.ProcessingRequest(
-          messageMetadata @ MessageMetadata(message, address),
+          messageMetadata @ MessageMetadata(message, address, _),
           owner,
           finishedCycle
           ) =>
@@ -123,7 +124,7 @@ class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
           owner.onBusCompleteMessage(owner, address, message)
         }
       case BusState.ProcessingReply(
-          messageMetadata @ MessageMetadata(message, address),
+          messageMetadata @ MessageMetadata(message, address, _),
           owner,
           reply,
           sender,

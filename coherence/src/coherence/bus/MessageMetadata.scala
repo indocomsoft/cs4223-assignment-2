@@ -3,6 +3,8 @@ package coherence.bus
 import coherence.Address
 
 /**
-  * Assume all message are 1 word long
+  * Size in bytes
   */
-case class MessageMetadata[Message](message: Message, address: Address)
+case class MessageMetadata[Message](message: Message,
+                                    address: Address,
+                                    size: Int = 1)
