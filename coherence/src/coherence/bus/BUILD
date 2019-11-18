@@ -58,7 +58,7 @@ scala_library(
     srcs = [
         "BusStatistics.scala",
     ],
-    deps = [":reply_metadata"],
-    exports = [":reply_metadata"],
     visibility = ["//visibility:public"],
+    exports = [":reply_metadata"],
+    deps = [":reply_metadata"],
 )

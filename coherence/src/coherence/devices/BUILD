@@ -54,8 +54,8 @@ scala_library(
     visibility = ["//visibility:public"],
     exports = [
         ":cache_delegate",
-        ":cache_statistics",
         ":cache_op",
+        ":cache_statistics",
         ":device",
         "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",
@@ -63,8 +63,8 @@ scala_library(
     ],
     deps = [
         ":cache_delegate",
-        ":cache_statistics",
         ":cache_op",
+        ":cache_statistics",
         ":device",
         "//src/coherence/bus",
         "//src/coherence/bus:bus_delegate",

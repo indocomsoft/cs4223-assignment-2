@@ -6,9 +6,9 @@ scala_binary(
     main_class = "coherence.Main",
     deps = [
         ":protocol",
+        "//src/coherence/dragon:simulator",
         "//src/coherence/mesi:simulator",
         "//src/coherence/moesi:simulator",
-        "//src/coherence/dragon:simulator",
     ],
 )
 
