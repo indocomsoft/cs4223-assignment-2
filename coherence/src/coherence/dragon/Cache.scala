@@ -111,7 +111,7 @@ class Cache(id: Int,
             val Address(tag, setIndex) = address
             sets(setIndex).immutableGet(tag) match {
               case Some(CacheLine(State.SM)) | Some(CacheLine(State.SC)) =>
-                state = CacheState.WaitingForBusUpgrPropagation(sender, op)
+                state = CacheState.WaitingForBusPropagation(sender, op)
                 MessageMetadata(Message.BusUpt(), address, blockSize)
               case None | Some(CacheLine(State.I)) =>
                 MessageMetadata(Message.BusRd(), address)
@@ -142,7 +142,7 @@ class Cache(id: Int,
     if (sender.eq(this)) {
       (state, result, message) match {
         case (
-            CacheState.WaitingForBusUpgrPropagation(cacheDelegate, op),
+            CacheState.WaitingForBusPropagation(cacheDelegate, op),
             Some(CacheLine(State.SC)),
             Message.BusUpt()
             ) =>
@@ -151,7 +151,7 @@ class Cache(id: Int,
           state = CacheState.Ready()
           cacheDelegate.requestCompleted(op)
         case (
-            CacheState.WaitingForBusUpgrPropagation(cacheDelegate, op),
+            CacheState.WaitingForBusPropagation(cacheDelegate, op),
             Some(CacheLine(State.SM)),
             Message.BusUpt()
             ) =>

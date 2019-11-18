@@ -106,7 +106,7 @@ class Cache(id: Int,
             val Address(tag, setIndex) = address
             sets(setIndex).immutableGet(tag) match {
               case Some(CacheLine(State.S)) =>
-                state = CacheState.WaitingForBusUpgrPropagation(sender, op)
+                state = CacheState.WaitingForBusPropagation(sender, op)
                 MessageMetadata(Message.BusUpgr(), address)
               case None | Some(CacheLine(State.I)) =>
                 MessageMetadata(Message.BusRdX(), address)
@@ -137,7 +137,7 @@ class Cache(id: Int,
     if (sender.eq(this)) {
       (state, result, message) match {
         case (
-            CacheState.WaitingForBusUpgrPropagation(cacheDelegate, op),
+            CacheState.WaitingForBusPropagation(cacheDelegate, op),
             Some(CacheLine(State.S)),
             Message.BusUpgr()
             ) =>

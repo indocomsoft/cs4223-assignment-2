@@ -39,7 +39,7 @@ abstract class Cache[State, Message, Reply](
                                 op: CacheOp,
                                 finishedCycle: Long)
         extends ActiveCacheState
-    case class WaitingForBusUpgrPropagation(sender: CacheDelegate, op: CacheOp)
+    case class WaitingForBusPropagation(sender: CacheDelegate, op: CacheOp)
         extends ActiveCacheState
     case class EvictWaitingForBus(address: Address,
                                   sender: CacheDelegate,
