@@ -2,7 +2,7 @@ digraph processor {
   rankdir=LR;
   dpi=600;
 
-  node [shape = point] Start;
+  node [shape = point] Start [xlabel = Start];
   node [shape = circle] Ready;
   node [shape = circle] Operation;
   node [shape = circle] Cache;

@@ -140,6 +140,71 @@ The associated singleton object of the \texttt{ProcessorOp} trait provides a fun
 
 \subsubsection{\texttt{Cache}}
 This is the ``template'' for the protocol-specific implementation of the cache.
+\subsubsection{\texttt{CacheDelegate}}
+This is the ``template'' for a cache delegate, which requires only one method, \texttt{requestCompleted} which is invoked when the operation is complete.
+
+\subsubsection{\texttt{CacheOp}}
+An ADT representing the possible cache operations.
+
+\subsubsection{\texttt{CacheStatistics}}
+This is a ``template'' for each protocol to provide a class that takes note of statistics in the \texttt{Cache}
+
+\subsection{MESI Protocol (\texttt{coherence.mesi})}
+The MESI protocol consists of four states: Modified (M), Exclusive (E), Shares (S), and Invalid (I).
+The state transition diagram can be found in Figure~\ref{fig:mesi}.
+For any given pair of caches, the permitted states of a given cache line is given in Table~\ref{tab:mesi}
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{mesi}
+  \caption{State Transition Diagram of the MESI Cache Coherency Protocol}
+  \label{fig:mesi}
+\end{figure}
+
+\begin{table}[hptb]
+  \centering
+  \begin{tabular}{|l|l|l|l|l|}
+    \hline
+               & \textbf{M} & \textbf{E} & \textbf{S} & \textbf{I} \\ \hline
+    \textbf{M} & No         & No         & No         & Yes        \\ \hline
+    \textbf{E} & No         & No         & No         & Yes        \\ \hline
+    \textbf{S} & No         & No         & Yes        & Yes        \\ \hline
+    \textbf{I} & Yes        & Yes        & Yes        & Yes        \\ \hline
+  \end{tabular}
+  \caption{Permitted States for a Pair of Caches}
+  \label{tab:mesi}
+\end{table}
+
+\subsubsection{Message}
+There are 4 possible messages to be placed by a cache that gained exclusive access to the bus:
+\begin{enumerate}
+  \item \texttt{BusRd} -- a read request to a cache block
+  \item \texttt{BusRdX} -- a read exclusive request to a cache block, typically when a cache wants to write to a cache block it does not already have.
+  \item \texttt{BusUpgr} -- a request to gain read exclusive access to a shared cache block that a cache already has.
+  \item \texttt{Flush} -- a request to write back the cache block to the main memory
+\end{enumerate}
+
+\subsubsection{Reply}
+There are 4 possible replies to be placed by a cache or memory to a Message:
+\begin{enumerate}
+  \item \texttt{Flush} -- when a cache block must be written back to the main memory
+  \item \texttt{FlushOpt} -- when a cache block is posted on the bus to supply it to another cache
+  \item \texttt{MemoryRead} -- when the memory posts a cache block on the bus
+  \item \texttt{WritebackOk} -- acknowledgement from the memory that a cache block has been written successfully
+\end{enumerate}
+
+\subsubsection{Memory}
+The memory in our MESI Protocol simulator snoops on the bus and will do one of these three things:
+\begin{enumerate}
+  \item Do nothing if the command is \texttt{BusUpgr}
+  \item Read from the address in the command placed by a cache if the command is \texttt{BusRd} or \texttt{BusRdX}
+  \item Write back to memory if the command is \texttt{Flush}
+\end{enumerate}
+
+If the memory detects that another cache is providing the cache line instead, e.g. if the state is S, then the memory will cancel the current read request.
+If the memory detects that a cache replied with OK, it will cancel the read request, and start the writeback process instead.
+
+\subsubsection{Cache}
 The cache is an FSM with 8 states, whereby each state will inform the cache about what to do with regards to the bus:
 \begin{itemize}
   \item \texttt{Ready} -- the cache is ready to accept commands from the processor
@@ -161,23 +226,13 @@ The state transitions are shown in Figure~\ref{fig:mesi_cache}
   \label{fig:mesi_cache}
 \end{figure}
 
-\subsubsection{\texttt{CacheDelegate}}
-This is the ``template'' for a cache delegate, which requires only one method, \texttt{requestCompleted} which is invoked when the operation is complete.
-
-\subsubsection{\texttt{CacheOp}}
-An ADT representing the possible cache operations.
-
-\subsubsection{\texttt{CacheStatistics}}
-This is a ``template'' for each protocol to provide a class that takes note of statistics in the \texttt{Cache}
-
-\subsection{MESI Protocol (\texttt{coherence.mesi})}
+\subsection{MOESI Protocol (\texttt{coherence.moesi}): Optimisation to Basic MESI Protocol}
+\cite{microelectronics1997ultrasparc}
 
 \subsection{Dragon Protocol}
 
 \section{Quantitative Analysis}
 
-\section{Advanced Task: Optimisation to Basic MESI Protocol}
-\cite{microelectronics1997ultrasparc}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{report}
