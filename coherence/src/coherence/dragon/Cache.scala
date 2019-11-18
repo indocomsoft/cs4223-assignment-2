@@ -60,8 +60,7 @@ class Cache(id: Int,
               case None =>
                 maybeEvict(sender, op)
               case Some(CacheLine(State.I)) =>
-                state = CacheState.WaitingForBus(sender, op)
-                bus.requestAccess(this)
+                throw new RuntimeException(s"$this: request when the state is $state")
               case Some(CacheLine(currentState)) =>
                 numHits += 1
                 state = CacheState.WaitingForResult(
@@ -81,9 +80,11 @@ class Cache(id: Int,
                 sets(setIndex).update(tag, CacheLine(State.M))
                 state =
                   CacheState.WaitingForResult(sender, op, currentCycle + 1)
-              case Some(CacheLine(State.I)) | Some(CacheLine(State.SC)) | Some(CacheLine(State.SM)) =>
+              case Some(CacheLine(State.SC)) | Some(CacheLine(State.SM)) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
+              case Some(CacheLine(State.I)) =>
+                throw new RuntimeException(s"$this: request when the state is $state")
             }
         }
       case _ =>
@@ -143,6 +144,17 @@ class Cache(id: Int,
             ) =>
           bus.relinquishAccess(this)
           sets(setIndex).update(tag, CacheLine(State.SM))
+          state = CacheState.Ready()
+          cacheDelegate.requestCompleted(op)
+        case (
+            CacheState.WaitingForBusUpgrPropagation(cacheDelegate, op),
+            Some(CacheLine(State.SM)),
+            Message.BusUpt()
+            ) =>
+          bus.relinquishAccess(this)
+          if (bus.isShared(address))
+            sets(setIndex).update(tag, CacheLine(State.SM))
+          else sets(setIndex).update(tag, CacheLine(State.M))
           state = CacheState.Ready()
           cacheDelegate.requestCompleted(op)
         case _ => ()
