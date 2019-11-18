@@ -8,6 +8,7 @@ scala_binary(
         ":protocol",
         "//src/coherence/mesi:simulator",
         "//src/coherence/moesi:simulator",
+        "//src/coherence/dragon:simulator",
     ],
 )
 

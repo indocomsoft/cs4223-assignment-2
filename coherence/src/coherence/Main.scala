@@ -2,6 +2,7 @@ package coherence
 
 import coherence.mesi.{Simulator => MESISimulator}
 import coherence.moesi.{Simulator => MOESISimulator}
+import coherence.dragon.{Simulator => DragonSimulator}
 
 case class Input(protocol: Protocol.Value,
                  prefix: String,
@@ -37,6 +38,8 @@ object Main extends App {
               case Protocol.MOESI =>
                 MOESISimulator(prefix, cacheSize, associativity, blockSize)
                   .run()
+              case Protocol.Dragon =>
+                DragonSimulator(prefix, cacheSize, associativity, blockSize).run()
             }
           case Left(errorMessage) =>
             printUsage(errorMessage)
