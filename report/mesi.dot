@@ -1,0 +1,28 @@
+digraph mesi {
+  rankdir=LR;
+  overlap = scale;
+  dpi=600;
+
+  node [shape = circle] M;
+  node [shape = circle] E;
+  node [shape = circle] S;
+  node [shape = circle] I;
+
+  I -> E;
+  I -> S;
+  I -> M;
+  I -> I;
+
+  E -> E;
+  E -> M;
+  E -> S;
+  E -> I;
+
+  S -> S;
+  S -> M;
+  S -> I;
+
+  M -> M;
+  M -> S;
+  M -> I;
+}

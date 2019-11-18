@@ -1,0 +1,33 @@
+digraph moesi {
+  rankdir=LR;
+  overlap = scale;
+  ranksep = 0.75;
+  dpi=600;
+
+  node [shape = circle] M;
+  node [shape = circle] O;
+  node [shape = circle] E;
+  node [shape = circle] S;
+  node [shape = circle] I;
+
+  M -> M;
+  O -> O;
+  E -> E;
+  S -> S;
+  I -> I;
+
+  I -> E;
+  I -> S;
+  I -> M;
+  E -> M;
+  E -> S;
+  E -> I;
+  S -> M;
+  S -> I;
+  M -> O;
+  M -> I;
+  O -> I;
+  M -> S;
+  O -> S;
+  O -> M;
+}
