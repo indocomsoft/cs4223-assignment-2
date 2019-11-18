@@ -4,9 +4,12 @@
 
 \title{CS4223 Assignment 2: Design and Implementation of Tracing Simulator for MESI, MOESI and Dragon Cache Coherency Protocols}
 \author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A0155181J)}
-\makeatletter\let\@authorsaddresses\@empty\makeatother%
+\makeatletter
+\let\@authorsaddresses\@empty
+\def\l@subsubsection{\@tocline{3}{0pt}{1pc}{5pc}{}}
+\makeatother
 
-\addtocontents{toc}{\setcounter{tocdepth}{2}}
+\setcounter{tocdepth}{2}
 
 \begin{document}
 \maketitle
@@ -243,7 +246,7 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 
 \begin{figure}[hptb]
   \centering
-  \includegraphics[width=0.5\textwidth]{moesi}
+  \includegraphics[width=0.7\textwidth]{moesi}
   \caption{State Transition Diagram of the MOESI Cache Coherency Protocol}
   \label{fig:moesi}
 \end{figure}
