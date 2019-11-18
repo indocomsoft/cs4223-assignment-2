@@ -107,7 +107,7 @@ class Cache(id: Int,
             sets(setIndex).immutableGet(tag) match {
               case Some(CacheLine(State.SM)) | Some(CacheLine(State.SC)) =>
                 state = CacheState.WaitingForBusUpgrPropagation(sender, op)
-                MessageMetadata(Message.BusUpt(), address)
+                MessageMetadata(Message.BusUpt(), address, blockSize)
               case None | Some(CacheLine(State.I)) =>
                 MessageMetadata(Message.BusRd(), address)
               case Some(state) =>
