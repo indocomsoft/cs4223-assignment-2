@@ -171,7 +171,7 @@ For any given pair of caches, the permitted states of a given cache line is give
     \textbf{S} & No         & No         & Yes        & Yes        \\ \hline
     \textbf{I} & Yes        & Yes        & Yes        & Yes        \\ \hline
   \end{tabular}
-  \caption{Permitted States for a Pair of Caches}
+  \caption{Permitted States for a Pair of Caches in MESI Protocol}
   \label{tab:mesi}
 \end{table}
 
@@ -227,9 +227,55 @@ The state transitions are shown in Figure~\ref{fig:mesi_cache}
 \end{figure}
 
 \subsection{MOESI Protocol (\texttt{coherence.moesi}): Optimisation to Basic MESI Protocol}
-\cite{microelectronics1997ultrasparc}
+Some processor architectures such as UltraSPARC \cite{microelectronics1997ultrasparc} and AMD Opteron \cite{Jacob:2007:MSC:1543376} use an optimised version of the MESI protocol by adding one more state: O for Owned, representing a cache line that is both modified and shared.
+The idea is to allow cache having a modified cache line to supply that data to another cache without performing a slow writeback to memory.
+The state transition diagram can be found in Figure~\ref{fig:moesi}. For any given pair of caches, the permitted states of a given cache line is given in Table~\ref{tab:moesi}.
+
+\subsubsection{Differences Compared to MESI}
+
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{moesi}
+  \caption{State Transition Diagram of the MOESI Cache Coherency Protocol}
+  \label{fig:moesi}
+\end{figure}
+
+\begin{table}[hptb]
+  \centering
+  \begin{tabular}{|l|l|l|l|l|l|}
+    \hline
+               & \textbf{M} & \textbf{O} & \textbf{E} & \textbf{S} & \textbf{I} \\ \hline
+    \textbf{M} & No         & No         & No         & No         & Yes        \\ \hline
+    \textbf{O} & No         & No         & No         & Yes        & Yes        \\ \hline
+    \textbf{E} & No         & No         & No         & No         & Yes        \\ \hline
+    \textbf{S} & No         & Yes        & No         & Yes        & Yes        \\ \hline
+    \textbf{I} & Yes        & Yes        & Yes        & Yes        & Yes        \\ \hline
+  \end{tabular}
+  \caption{Permitted States for a Pair of Caches in MESI Protocol}
+  \label{tab:moesi}
+\end{table}
 
 \subsection{Dragon Protocol}
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=0.8\textwidth]{dragon}
+  \caption{State Diagram for the Dragon Protocol}
+\end{figure}
+
+\begin{table}[hptb]
+  \centering
+  \begin{tabular}{|l|l|l|l|l|}
+    \hline
+                & \textbf{E} & \textbf{Sc} & \textbf{Sm} & \textbf{M} \\ \hline
+    \textbf{E}  & No         & No          & No          & No         \\ \hline
+    \textbf{Sc} & No         & Yes         & Yes         & No         \\ \hline
+    \textbf{Sm} & No         & Yes         & No          & No         \\ \hline
+    \textbf{M}  & No         & No          & No          & No         \\ \hline
+  \end{tabular}
+  \caption{Permitted States for a Pair of Caches in Dragon Protocol}
+  \label{tab:dragon}
+\end{table}
 
 \section{Quantitative Analysis}
 
