@@ -180,7 +180,7 @@ class Bus[Message, Reply](val stats: BusStatistics[Message, Reply])
         val numWords = (messageMetadata.size - 1) / 8 + 1
         state = BusState.ProcessingRequest(
           messageMetadata,
-          device,
+          sender,
           currentCycle + numWords * Bus.PerWordLatency
         )
       case _ =>
