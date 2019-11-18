@@ -9,7 +9,7 @@ digraph mesi_cache {
   node [shape = oval] WaitingForReplies
   node [shape = oval] WaitingForWriteback
   node [shape = oval] WaitingForResult
-  node [shape = oval] WaitingForBusUpgrPropagation
+  node [shape = oval] WaitingForBusPropagation
   node [shape = oval] EvictWaitingForBus
   node [shape = oval] EvictWaitingForWriteback
 
@@ -25,6 +25,6 @@ digraph mesi_cache {
   WaitingForReplies -> Ready;
   WaitingForReplies -> WaitingForWriteback;
   WaitingForWriteback -> Ready;
-  WaitingForBus -> WaitingForBusUpgrPropagation;
-  WaitingForBusUpgrPropagation -> Ready;
+  WaitingForBus -> WaitingForBusPropagation;
+  WaitingForBusPropagation -> Ready;
 }

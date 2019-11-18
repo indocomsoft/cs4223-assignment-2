@@ -6,8 +6,13 @@
 \author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A0155181J)}
 \makeatletter\let\@authorsaddresses\@empty\makeatother%
 
+\addtocontents{toc}{\setcounter{tocdepth}{2}}
+
 \begin{document}
 \maketitle
+
+\tableofcontents
+
 
 \section{Choice of Programming Language}
 Initially, we tried to implement the trace simulator using Python.
@@ -140,6 +145,27 @@ The associated singleton object of the \texttt{ProcessorOp} trait provides a fun
 
 \subsubsection{\texttt{Cache}}
 This is the ``template'' for the protocol-specific implementation of the cache.
+The cache is an FSM with 8 states, whereby each state will inform the cache about what to do with regards to the bus:
+\begin{itemize}
+  \item \texttt{Ready} -- the cache is ready to accept commands from the processor
+  \item \texttt{WaitingForBus} -- the cache has requested access to the bus but is waiting for that access to be granted
+  \item \texttt{WaitingForReplies} -- the cache has exclusive access to the bus and has placed a message on the bus, and is waiting for replies from the other caches.
+  \item \texttt{WaitingForWriteback} -- the cache has exclusive access to the bus and has snooped a Flush request, and is currently waiting for the memory to acknowledge that the writeback succeeded.
+  \item \texttt{WaitingForResult} -- the cache has the cache line requested, and that cache line is valid, and the cache is currently experiencing its hit latency.
+  \item \texttt{WaitingForBusPropagation} -- the cache sent a message on the bus and is waiting for the message to reach the other caches.
+  \item \texttt{EvictWaitingForBus} -- the cache needs to evict a cache line, has requested access to the bus and is currently waiting for that access to be granted.
+  \item \texttt{EvictWaitingForWriteback} -- the cache currently has exclusive access to the bus and has placed the flush command on the bus and is waiting for the memory to acknowledge the writeback.
+\end{itemize}
+
+The state transitions are shown in Figure~\ref{fig:cache}
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=\textwidth]{cache}
+  \caption{The state diagram for the cache}
+  \label{fig:cache}
+\end{figure}
+
 \subsubsection{\texttt{CacheDelegate}}
 This is the ``template'' for a cache delegate, which requires only one method, \texttt{requestCompleted} which is invoked when the operation is complete.
 
@@ -163,6 +189,8 @@ For any given pair of caches, the permitted states of a given cache line is give
 
 \begin{table}[hptb]
   \centering
+  \caption{Permitted States for a Pair of Caches in MESI Protocol}
+  \label{tab:mesi}
   \begin{tabular}{|l|l|l|l|l|}
     \hline
                & \textbf{M} & \textbf{E} & \textbf{S} & \textbf{I} \\ \hline
@@ -171,8 +199,6 @@ For any given pair of caches, the permitted states of a given cache line is give
     \textbf{S} & No         & No         & Yes        & Yes        \\ \hline
     \textbf{I} & Yes        & Yes        & Yes        & Yes        \\ \hline
   \end{tabular}
-  \caption{Permitted States for a Pair of Caches in MESI Protocol}
-  \label{tab:mesi}
 \end{table}
 
 \subsubsection{Message}
@@ -205,26 +231,7 @@ If the memory detects that another cache is providing the cache line instead, e.
 If the memory detects that a cache replied with OK, it will cancel the read request, and start the writeback process instead.
 
 \subsubsection{Cache}
-The cache is an FSM with 8 states, whereby each state will inform the cache about what to do with regards to the bus:
-\begin{itemize}
-  \item \texttt{Ready} -- the cache is ready to accept commands from the processor
-  \item \texttt{WaitingForBus} -- the cache has requested access to the bus but is waiting for that access to be granted
-  \item \texttt{WaitingForReplies} -- the cache has exclusive access to the bus and has placed a message on the bus, and is waiting for replies from the other caches.
-  \item \texttt{WaitingForWriteback} -- the cache has exclusive access to the bus and has snooped a Flush request, and is currently waiting for the memory to acknowledge that the writeback succeeded.
-  \item \texttt{WaitingForResult} -- the cache has the cache line requested, and that cache line is valid, and the cache is currently experiencing its hit latency.
-  \item \texttt{WaitingForBusUpgrPropagation} -- the cache sent a \texttt{BusUpgr} message and is waiting for the message to reach the other caches such that the other caches will invalidate their cache lines.
-  \item \texttt{EvictWaitingForBus} -- the cache needs to evict a cache line, has requested access to the bus and is currently waiting for that access to be granted.
-  \item \texttt{EvictWaitingForWriteback} -- the cache currently has exclusive access to the bus and has placed the flush command on the bus and is waiting for the memory to acknowledge the writeback.
-\end{itemize}
-
-The state transitions are shown in Figure~\ref{fig:mesi_cache}
-
-\begin{figure}[hptb]
-  \centering
-  \includegraphics[width=\textwidth]{mesi_cache}
-  \caption{The state diagram for the cache}
-  \label{fig:mesi_cache}
-\end{figure}
+This is the specific implementation of abstract class \texttt{Cache} from \texttt{coherence.devices} for the MESI protocol according to the state transition diagram in Figure~\ref{fig:mesi}
 
 \subsection{MOESI Protocol (\texttt{coherence.moesi}): Optimisation to Basic MESI Protocol}
 Some processor architectures such as UltraSPARC \cite{microelectronics1997ultrasparc} and AMD Opteron \cite{Jacob:2007:MSC:1543376} use an optimised version of the MESI protocol by adding one more state: O for Owned, representing a cache line that is both modified and shared.
@@ -243,6 +250,8 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 
 \begin{table}[hptb]
   \centering
+  \caption{Permitted States for a Pair of Caches in MESI Protocol}
+  \label{tab:moesi}
   \begin{tabular}{|l|l|l|l|l|l|}
     \hline
                & \textbf{M} & \textbf{O} & \textbf{E} & \textbf{S} & \textbf{I} \\ \hline
@@ -252,8 +261,6 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
     \textbf{S} & No         & Yes        & No         & Yes        & Yes        \\ \hline
     \textbf{I} & Yes        & Yes        & Yes        & Yes        & Yes        \\ \hline
   \end{tabular}
-  \caption{Permitted States for a Pair of Caches in MESI Protocol}
-  \label{tab:moesi}
 \end{table}
 
 \subsection{Dragon Protocol}
@@ -265,6 +272,8 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 
 \begin{table}[hptb]
   \centering
+  \caption{Permitted States for a Pair of Caches in Dragon Protocol}
+  \label{tab:dragon}
   \begin{tabular}{|l|l|l|l|l|}
     \hline
                 & \textbf{E} & \textbf{Sc} & \textbf{Sm} & \textbf{M} \\ \hline
@@ -273,8 +282,6 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
     \textbf{Sm} & No         & Yes         & No          & No         \\ \hline
     \textbf{M}  & No         & No          & No          & No         \\ \hline
   \end{tabular}
-  \caption{Permitted States for a Pair of Caches in Dragon Protocol}
-  \label{tab:dragon}
 \end{table}
 
 \section{Quantitative Analysis}
