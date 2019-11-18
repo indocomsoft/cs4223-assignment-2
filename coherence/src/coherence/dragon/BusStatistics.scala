@@ -12,8 +12,8 @@ class BusStatistics[Message, Reply]
 
   override def logMessage(message: Message): Unit =
     message match {
-      case Message.BusUpt()                     => _numInvalidationUpdate += 1
-      case Message.Flush() | Message.BusRd()    => ()
+      case Message.BusUpt()                  => _numInvalidationUpdate += 1
+      case Message.Flush() | Message.BusRd() => ()
     }
   override def logReply(reply: ReplyMetadata[Reply]): Unit =
     reply match {

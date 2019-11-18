@@ -60,7 +60,9 @@ class Cache(id: Int,
               case None =>
                 maybeEvict(sender, op)
               case Some(CacheLine(State.I)) =>
-                throw new RuntimeException(s"$this: request when the state is $state")
+                throw new RuntimeException(
+                  s"$this: request when the state is $state"
+                )
               case Some(CacheLine(currentState)) =>
                 numHits += 1
                 state = CacheState.WaitingForResult(
@@ -84,7 +86,9 @@ class Cache(id: Int,
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
               case Some(CacheLine(State.I)) =>
-                throw new RuntimeException(s"$this: request when the state is $state")
+                throw new RuntimeException(
+                  s"$this: request when the state is $state"
+                )
             }
         }
       case _ =>
@@ -184,7 +188,7 @@ class Cache(id: Int,
           }
         case Some(CacheLine(State.SM)) =>
           message match {
-            case Message.BusRd() => ()
+            case Message.BusRd() =>
               maybeReply = Some(Reply.Flush())
             case Message.BusUpt() =>
               sets(setIndex).update(tag, CacheLine(State.SC))
@@ -257,7 +261,7 @@ class Cache(id: Int,
       }
     } else {
       reply match {
-        case _                => ()
+        case _ => ()
       }
     }
 
