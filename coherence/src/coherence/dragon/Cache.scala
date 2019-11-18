@@ -233,10 +233,16 @@ class Cache(id: Int,
         case CacheState.WaitingForWriteback(sender, op) =>
           reply match {
             case Reply.WriteBackOk() =>
-              bus.relinquishAccess(this)
-              state = CacheState.Ready()
               commitChange(op, address, reply)
-              sender.requestCompleted(op)
+              (bus.isShared(address), op) match {
+                case (true, CacheOp.Store(_)) =>
+                  bus.sendAnotherMessage(this, MessageMetadata(Message.BusUpt(), address, blockSize))
+                  state = CacheState.WaitingForBusPropagation(sender, op)
+                case (false, _) | (_, CacheOp.Load(_)) =>
+                  bus.relinquishAccess(this)
+                  state = CacheState.Ready()
+                  sender.requestCompleted(op)
+              }
             case _ =>
               throw new RuntimeException(
                 s"$this: got $reply when state is $state"
