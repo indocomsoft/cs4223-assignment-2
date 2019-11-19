@@ -24,8 +24,7 @@ abstract class Memory[State, Message, Reply](bus: Bus[Message, Reply],
     maybeReply match {
       case Some((replyMetadata, finishedCycle)) =>
         if (currentCycle == finishedCycle) {
-          bus.reply(this, replyMetadata)
-          maybeReply = None
+          if (bus.reply(this, replyMetadata)) maybeReply = None
         }
       case None =>
         ()
