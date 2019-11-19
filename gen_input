@@ -1,0 +1,21 @@
+#!/bin/bash
+
+for protocol in MESI MOESI Dragon
+do
+  for input in blackscholes_four/blackscholes bodytrack_four/bodytrack fluidanimate_four/fluidanimate
+  do
+    for cache_size_log2 in $(seq 0 20)
+    do
+      for associativity_log2 in $(seq 0 "$cache_size_log2")
+      do
+        for block_size_log2 in $(seq 0 "$cache_size_log2")
+        do
+          cache_size=$(bc <<< "2^$cache_size_log2")
+          associativity=$(bc <<< "2^$associativity_log2")
+          block_size=$(bc <<< "2^$block_size_log2")
+          echo $protocol $input "$cache_size" "$associativity" "$block_size"
+        done
+      done
+    done
+  done
+done

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd /home/j/julius/cs4223/cs4223-assignment-2/ || (echo Failed to cd; exit 1)
+mkdir -p log
+filename=${*// /-}
+java -jar coherence/out.jar "$@" > log/"$filename"
