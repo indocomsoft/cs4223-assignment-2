@@ -86,6 +86,23 @@ Note that in our bus design, each device connected to the bus is not blocked on 
 They are still able to service incoming transactions while waiting to be granted exclusive access to the bus.
 This is done to \emph{prevent protocol-level deadlock}, sometimes called \emph{fetch-deadlock} \cite{Culler:1998:PCA:2821564}.
 
+Our bus is implemented as an FSM with 4 states:
+\begin{enumerate}
+  \item \texttt{Ready} -- no cache has exclusive access to the bus (the mutex lock is not acquired)
+  \item \texttt{ProcessingRequest} -- Processing a message from a cache, since only a finite amount of data can be transferred to the bus in a cycle
+  \item \texttt{RequestSent} -- A message has been posted on the bus, and the bus is accepting replies from the other devices
+  \item \texttt{ProcessingReply} -- Processing a reply from a cache, since only a finite amount of data can be transferred to the bus in a cycle
+\end{enumerate}
+
+The state transition can be seen in Figure~\ref{fig:bus}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{bus}
+  \caption{State Transition for the Bus}
+  \label{fig:bus}
+\end{figure}
+
 \subsubsection{\texttt{BusDelegate}}
 Specifies the hooks in a device that wants to hear back from the \texttt{Bus} regarding events on the Bus.
 Of interest is the \texttt{hasCopy} method, which is invoked in order to check the ``SHARED'' OR line, required by the protocols to check whether a particular cache line already exists in the other caches.
@@ -95,7 +112,7 @@ This is a ``template'' for each protocol to provide a class that takes note of s
 
 \subsubsection{\texttt{MessageMetadata}}
 A case class that stores the message that a cache wants to place on the bus, as well as the address affected by that message.
-The size of each message here is assumed to be 1 word long.
+The size of each message if not explicitly given is assumed to be 1 byte long.
 
 \subsubsection{\texttt{ReplyMetadata}}
 A case class that stores the reply from other caches, as well as the size of the reply.
