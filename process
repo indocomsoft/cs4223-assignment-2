@@ -2,5 +2,7 @@
 
 cd /home/j/julius/cs4223/cs4223-assignment-2/ || (echo Failed to cd; exit 1)
 mkdir -p log
-filename=${*// /-}
-java -jar coherence/out.jar "$@" > log/"$filename"
+filename_dash=${*// /-}
+filename=${filename_dash//\//-}
+echo "$filename"
+java -jar coherence/out.jar "$@" > log/"$filename" 2>&1
