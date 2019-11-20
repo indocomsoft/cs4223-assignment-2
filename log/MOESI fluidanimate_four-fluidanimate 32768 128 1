@@ -1,0 +1,50 @@
+Summary
+======
+Overall execution cycle = 239669375
+Total execution cycles per core:
+- Processor 0 = 239669375
+- Processor 1 = 230874880
+- Processor 2 = 238267189
+- Processor 3 = 235930289
+======
+Number of compute cycles per core:
+- Processor 0 = 11337782
+- Processor 1 = 11290799
+- Processor 2 = 11337671
+- Processor 3 = 11301515
+======
+Number of load/store instructions per core:
+- Processor 0: Load = 1832392, Store = 744111
+- Processor 1: Load = 1821846, Store = 585998
+- Processor 2: Load = 1838008, Store = 766181
+- Processor 3: Load = 1832174, Store = 579291
+======
+Number of idle cycles
+- Processor 0 = 228331593
+- Processor 1 = 219584081
+- Processor 2 = 226929518
+- Processor 3 = 224628774
+======
+Data cache miss rate for each core
+- Processor 0 = 0.339417807780546 (874511/2576503)
+- Processor 1 = 0.29509926722827556 (710553/2407844)
+- Processor 2 = 0.344346742882333 (896744/2604189)
+- Processor 3 = 0.29218338230080054 (704590/2411465)
+======
+Amount of Data traffic in bytes on the bus
+= 1347295
+======
+Number of invalidations or updates on the bus
+= 840473
+======
+Distribution of accesses to private data versus shared data
+- Cache 0: numPrivateAccess = 2130280, numSharedAccess = 446223
+- Cache 1: numPrivateAccess = 2085687, numSharedAccess = 322157
+- Cache 2: numPrivateAccess = 2182490, numSharedAccess = 421699
+- Cache 3: numPrivateAccess = 1968703, numSharedAccess = 442762
+======
+Number of times each state is entered
+- Cache 0: numO = 216
+- Cache 1: numO = 49
+- Cache 2: numO = 343
+- Cache 3: numO = 46

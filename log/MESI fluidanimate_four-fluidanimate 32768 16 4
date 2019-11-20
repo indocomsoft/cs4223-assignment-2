@@ -1,0 +1,44 @@
+Summary
+======
+Overall execution cycle = 240116922
+Total execution cycles per core:
+- Processor 0 = 240116922
+- Processor 1 = 231201216
+- Processor 2 = 238636701
+- Processor 3 = 236377196
+======
+Number of compute cycles per core:
+- Processor 0 = 11337782
+- Processor 1 = 11290799
+- Processor 2 = 11337671
+- Processor 3 = 11301515
+======
+Number of load/store instructions per core:
+- Processor 0: Load = 1832392, Store = 744111
+- Processor 1: Load = 1821846, Store = 585998
+- Processor 2: Load = 1838008, Store = 766181
+- Processor 3: Load = 1832174, Store = 579291
+======
+Number of idle cycles
+- Processor 0 = 228779140
+- Processor 1 = 219910417
+- Processor 2 = 227299030
+- Processor 3 = 225075681
+======
+Data cache miss rate for each core
+- Processor 0 = 0.33941237405894736 (874497/2576503)
+- Processor 1 = 0.2952674674937413 (710958/2407844)
+- Processor 2 = 0.3444323741479593 (896967/2604189)
+- Processor 3 = 0.2923285222883185 (704940/2411465)
+======
+Amount of Data traffic in bytes on the bus
+= 5394012
+======
+Number of invalidations or updates on the bus
+= 840592
+======
+Distribution of accesses to private data versus shared data
+- Cache 0: numPrivateAccess = 2130911, numSharedAccess = 445592
+- Cache 1: numPrivateAccess = 2087262, numSharedAccess = 320582
+- Cache 2: numPrivateAccess = 2183953, numSharedAccess = 420236
+- Cache 3: numPrivateAccess = 1969689, numSharedAccess = 441776
