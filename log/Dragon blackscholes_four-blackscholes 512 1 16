@@ -38,3 +38,7 @@ Number of invalidations or updates on the bus
 = 1402
 ======
 Distribution of accesses to private data versus shared data
+- Cache 0: numPrivateAccess = 2197709, numSharedAccess = 299640
+- Cache 1: numPrivateAccess = 2168116, numSharedAccess = 322352
+- Cache 2: numPrivateAccess = 2197793, numSharedAccess = 311264
+- Cache 3: numPrivateAccess = 2175633, numSharedAccess = 327494
