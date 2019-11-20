@@ -12,7 +12,10 @@
           num_blocks = cache_size / block_size
           num_sets = num_blocks / associativity
           if !num_sets.zero? && (num_sets & (num_sets - 1)).zero?
-            puts "#{protocol} #{input} #{cache_size} #{associativity} #{block_size}"
+            filename = "log/#{protocol} #{input.gsub("/","-")} #{cache_size} #{associativity} #{block_size}"
+            if !File.exist?(filename) || File.zero?(filename)
+              puts "#{protocol} #{input} #{cache_size} #{associativity} #{block_size}"
+            end
           end
         end
       end

@@ -8,7 +8,7 @@ if [[ -z "$(cat "$filename")" ]]
 then
   echo Running
   touch "$filename"
-  java -jar coherence/out.jar "$@" > "$filename" 2>&1
+  java -jar coherence/out.jar "$@" > "$filename"
 else
   echo Skip
 fi
