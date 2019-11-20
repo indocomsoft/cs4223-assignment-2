@@ -5,13 +5,13 @@ require 'csv'
 
 PROCESSOR_COLS = %w[exec idle].freeze
 PROCESSOR_OFFSETS = [4, 22].freeze
-ALL_COLS = %w[bustraffic invalidationupdate].freeze
-ALL_OFFSETS = [34, 37].freeze
+ALL_COLS = %w[bustraffic invalidationupdate exec].freeze
+ALL_OFFSETS = [34, 37, 2].freeze
 
 CSV.open('result.csv', 'w') do |csv|
   csv << %w[protocol input cachesize associativity blocksize] +
          %w[exec0 exec1 exec2 exec3 idle0 idle1 idle2 idle3 bustraffic] +
-         %w[invalidationupdate load0 load1 load2 load3 store0 store1 store2] +
+         %w[invalidationupdate exec load0 load1 load2 load3 store0 store1 store2] +
          %w[store3 miss0 miss1 miss2 miss3 private0 private1 private2] +
          %w[private3 shared0 shared1 shared2 shared3]
   Dir['log/*'].each do |filename|

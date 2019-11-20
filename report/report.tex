@@ -1,6 +1,21 @@
 \documentclass[nonacm,acmsmall,screen,11pt]{acmart}
 
-\usepackage{graphviz}
+\usepackage{csvsimple}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+
+\pgfplotsset{
+    discard if not/.style 2 args={
+        x filter/.code={
+            \edef\tempa{\thisrow{#1}}
+            \edef\tempb{#2}
+            \ifx\tempa\tempb
+            \else
+                \def\pgfmathresult{inf}
+            \fi
+        }
+    }
+}
 
 \title{CS4223 Assignment 2: Design and Implementation of Tracing Simulator for MESI, MOESI and Dragon Cache Coherency Protocols}
 \author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A0155181J)}
@@ -15,7 +30,6 @@
 \maketitle
 
 \tableofcontents
-
 
 \section{Choice of Programming Language}
 Initially, we tried to implement the trace simulator using Python.
@@ -45,7 +59,7 @@ As we explain the design of the devices in our simulator, we will mention how we
 This is the main driver code of the simulator.
 It takes in arguments passed by user and parses them into the appropriate types, such as \texttt{Int}, \texttt{String} and \texttt{Protocol}.
 \texttt{Protocol} is actually defined inside \texttt{Protocol.scala}, which is an enumeration of supported cache coherency protocols.
-In our case we have \texttt{MESI} and \texttt{Dragon}.
+In our case we have \texttt{MESI} and \texttt{Dragon}, as well as MOESI for the advanced task.
 If all the arguments are parsed successfully, the appropriate tracing simulator is then invoked.
 
 \subsubsection{\texttt{Debug.scala}}
@@ -96,7 +110,7 @@ Our bus is implemented as an FSM with 4 states:
 
 The state transition can be seen in Figure~\ref{fig:bus}.
 
-\begin{figure}
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=\textwidth]{bus}
   \caption{State Transition for the Bus}
@@ -152,7 +166,7 @@ It is an FSM with 4 states, with transitions as shown in Figure~\ref{fig:process
   \item \texttt{Finished} -- the processor has no more instruction to execute
 \end{itemize}
 
-\begin{figure}[hptb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=0.3\textwidth]{processor}
   \caption{The state diagram for the processor}
@@ -179,7 +193,7 @@ The cache is an FSM with 8 states, whereby each state will inform the cache abou
 
 The state transitions are shown in Figure~\ref{fig:cache}
 
-\begin{figure}[hptb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=\textwidth]{cache}
   \caption{The state diagram for the cache}
@@ -196,18 +210,18 @@ An ADT representing the possible cache operations.
 This is a ``template'' for each protocol to provide a class that takes note of statistics in the \texttt{Cache}
 
 \subsection{MESI Protocol (\texttt{coherence.mesi})}
-The MESI protocol consists of four states: Modified (M), Exclusive (E), Shares (S), and Invalid (I).
+The MESI protocol consists of four states: Modified (M), Exclusive (E), Shared (S), and Invalid (I).
 The state transition diagram can be found in Figure~\ref{fig:mesi}.
 For any given pair of caches, the permitted states of a given cache line is given in Table~\ref{tab:mesi}
 
-\begin{figure}[hptb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=0.5\textwidth]{mesi}
   \caption{State Transition Diagram of the MESI Cache Coherency Protocol}
   \label{fig:mesi}
 \end{figure}
 
-\begin{table}[hptb]
+\begin{table}[htb!]
   \centering
   \caption{Permitted States for a Pair of Caches in MESI Protocol}
   \label{tab:mesi}
@@ -253,6 +267,9 @@ If the memory detects that a cache replied with OK, it will cancel the read requ
 \subsubsection{Cache}
 This is the specific implementation of abstract class \texttt{Cache} from \texttt{coherence.devices} for the MESI protocol according to the state transition diagram in Figure~\ref{fig:mesi}
 
+In our implementation, in case of cache line that is shared, the one supplying the block will be arbitrarily picked, depending on the one that was able to place its reply on the bus first.
+When other caches detect that the block content has been posted on the bus, they will change state so as to not double-send the block.
+
 \subsection{MOESI Protocol (\texttt{coherence.moesi}): Optimisation to Basic MESI Protocol}
 Some processor architectures such as UltraSPARC \cite{microelectronics1997ultrasparc} and AMD Opteron \cite{Jacob:2007:MSC:1543376} use an optimised version of the MESI protocol by adding one more state: O for Owned, representing a cache line that is both modified and shared.
 The idea is to allow cache having a modified cache line to supply that data to another cache without performing a slow writeback to memory.
@@ -261,14 +278,14 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 \subsubsection{Differences Compared to MESI}
 
 
-\begin{figure}[hptb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=0.7\textwidth]{moesi}
   \caption{State Transition Diagram of the MOESI Cache Coherency Protocol}
   \label{fig:moesi}
 \end{figure}
 
-\begin{table}[hptb]
+\begin{table}[htb!]
   \centering
   \caption{Permitted States for a Pair of Caches in MESI Protocol}
   \label{tab:moesi}
@@ -284,13 +301,13 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 \end{table}
 
 \subsection{Dragon Protocol}
-\begin{figure}[hptb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=0.8\textwidth]{dragon}
   \caption{State Diagram for the Dragon Protocol}
 \end{figure}
 
-\begin{table}[hptb]
+\begin{table}[htb!]
   \centering
   \caption{Permitted States for a Pair of Caches in Dragon Protocol}
   \label{tab:dragon}
@@ -305,7 +322,10 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 \end{table}
 
 \section{Quantitative Analysis}
-
+\subsection{Cache size}
+\begin{figure}[htb!]
+  \centering
+\end{figure}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{report}
