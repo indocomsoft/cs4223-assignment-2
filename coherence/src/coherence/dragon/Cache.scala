@@ -161,6 +161,14 @@ class Cache(id: Int,
           else sets(setIndex).update(tag, CacheLine(State.M))
           state = CacheState.Ready()
           cacheDelegate.requestCompleted(op)
+        case (
+            CacheState.WaitingForBusPropagation(_, _),
+            Some(CacheLine(state)),
+            _
+            ) =>
+          throw new RuntimeException(
+            s"$this: unexpected WaitingForBusPropagation when state is $state"
+          )
         case _ => ()
       }
     } else {
@@ -233,10 +241,14 @@ class Cache(id: Int,
         case CacheState.WaitingForWriteback(sender, op) =>
           reply match {
             case Reply.WriteBackOk() =>
+              val isShared = bus.isShared(address)
               commitChange(op, address, reply)
-              (bus.isShared(address), op) match {
+              (isShared, op) match {
                 case (true, CacheOp.Store(_)) =>
-                  bus.sendAnotherMessage(this, MessageMetadata(Message.BusUpt(), address, blockSize))
+                  bus.sendAnotherMessage(
+                    this,
+                    MessageMetadata(Message.BusUpt(), address, blockSize)
+                  )
                   state = CacheState.WaitingForBusPropagation(sender, op)
                 case (false, _) | (_, CacheOp.Load(_)) =>
                   bus.relinquishAccess(this)
