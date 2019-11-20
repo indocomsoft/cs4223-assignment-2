@@ -4,11 +4,4 @@ cd /home/j/julius/cs4223/cs4223-assignment-2/ || (echo Failed to cd; exit 1)
 mkdir -p log
 filename=log/${*//\//-}
 echo "$filename"
-if [[ -z "$(cat "$filename")" ]]
-then
-  echo Running
-  touch "$filename"
-  java -jar coherence/out.jar "$@" > "$filename"
-else
-  echo Skip
-fi
+java -jar coherence/out.jar "$@" > "$filename"
