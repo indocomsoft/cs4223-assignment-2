@@ -1,21 +1,6 @@
 \documentclass[nonacm,acmsmall,screen,11pt]{acmart}
 
-\usepackage{csvsimple}
-\usepackage{pgfplots}
-\pgfplotsset{compat=newest}
-
-\pgfplotsset{
-    discard if not/.style 2 args={
-        x filter/.code={
-            \edef\tempa{\thisrow{#1}}
-            \edef\tempb{#2}
-            \ifx\tempa\tempb
-            \else
-                \def\pgfmathresult{inf}
-            \fi
-        }
-    }
-}
+\usepackage{subcaption}
 
 \title{CS4223 Assignment 2: Design and Implementation of Tracing Simulator for MESI, MOESI and Dragon Cache Coherency Protocols}
 \author{Julius Putra Tanu Setiaji (A0149787E), Kyle Timothy Ng Chu (A0155181J)}
@@ -325,6 +310,20 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 \subsection{Cache size}
 \begin{figure}[htb!]
   \centering
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\textwidth]{cachesize-blackscholes}
+    \caption{blackscholes}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\columnwidth]{cachesize-bodytrack}
+    \caption{bodytrack}
+  \end{subfigure}
+  \begin{subfigure}{0.32\textwidth}
+    \includegraphics[width=\columnwidth]{cachesize-fluidanimate}
+    \caption{fluidanimate}
+  \end{subfigure}
+  \caption{Plot of total execution cycles against cache size with 2-way associative cache with 32 bytes block size}
+  \label{fig:cachesize}
 \end{figure}
 
 \bibliographystyle{ACM-Reference-Format}
