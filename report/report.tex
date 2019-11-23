@@ -261,7 +261,10 @@ The idea is to allow cache having a modified cache line to supply that data to a
 The state transition diagram can be found in Figure~\ref{fig:moesi}. For any given pair of caches, the permitted states of a given cache line is given in Table~\ref{tab:moesi}.
 
 \subsubsection{Differences Compared to MESI}
-
+We use the MESI code as a base, and then applying the necessary patches to it.
+Firstly, we needed to add one more state \texttt{O}.
+We can reuse all the \texttt{Message} and \texttt{Reply} from MESI, as what differs is the behaviour in response to those messages and replies.
+In total, we changed about 17 lines to create the relevant behaviour change required to turn the MESI protocol into the MOESI protocol.
 
 \begin{figure}[htb!]
   \centering
@@ -328,7 +331,7 @@ There are 4 possible replies to be placed by a cache or memory to a Message:
 The memory in our Dragon Protocol simulator snoops on the bus and will do one of these three things:
 \begin{enumerate}
   \item Do nothing if the command is \texttt{BusUpt}
-  \item Read from the address in the command placed by a cache if the command is \texttt{BusRd} or \texttt{BusRdX}
+  \item Read from the address in the command placed by a cache if the command is \texttt{BusRd}
   \item Write back to memory if the command is \texttt{Flush}
 \end{enumerate}
 
@@ -350,7 +353,7 @@ Before analysing the results of our simulations, it is important to first briefl
 \end{table}
 \begin{itemize}
   \item \textit{blackscholes} - This benchmark consists of a main thread which spawns several worker threads that act on independent sections of data. As a result the majority of shared memory among the threads is between the main thread and the worker threads. Since the worker threads process data independently of each other, there is little communication between the threads.
-  \item \textit{bodytrack} - This benchmark has multiple threads working on the same set of data.
+  \item \textit{bodytrack} - This benchmark has multiple threads working on the same set of data, specifically it uses a thread pool parallelism model.
   \item \textit{fluidanimate} - This benchmark has multiple threads working on the same set of data. Due to the nature of the workload, there is a significant amount of inter-thread communication which scales with the number of threads \cite{bienia2008parsec}
 \end{itemize}
 
@@ -398,6 +401,7 @@ The \textit{fluidanimate} shows much more promising results for the Dragon proto
 As seen in Figure \ref{fig:blocksize}, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. One interesting phenomenon that is observed here is how performance sharply drops past a certain block size in all 3 benchmarks. In the MOESI/MESI protocol, this is most probably due to the increased number of invalidation misses as an invalidation causes the entire cache block to be invalidated which could have contained data that would be needed in the next few instructions. In the Dragon protocol, this can be attributed to a higher overhead associated with updating the cache blocks for each write update.
 
 \subsubsection{Associativity}
+\label{subsub:associativity}
 \begin{figure}[htb!]
   \centering
   \begin{subfigure}{0.32\textwidth}
@@ -407,6 +411,7 @@ As seen in Figure \ref{fig:blocksize}, the MOESI/MESI protocol once again out pe
   \begin{subfigure}{0.32\textwidth}
     \includegraphics[width=\columnwidth]{associativity-bodytrack}
     \caption{bodytrack}
+    \label{fig:associativity:bodytrack}
   \end{subfigure}
   \begin{subfigure}{0.32\textwidth}
     \includegraphics[width=\columnwidth]{associativity-fluidanimate}
@@ -415,12 +420,45 @@ As seen in Figure \ref{fig:blocksize}, the MOESI/MESI protocol once again out pe
   \caption{Plot of total execution cycles against associativity with 32 bytes block size with 4 kilobytes cache size}
   \label{fig:associativity}
 \end{figure}
-As seen in Figure \ref{fig:associativity}, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. We can also see that the performance gained from increasing associativity flattens out in all 3 benchmarks for all the protocols. This is most likely due to the fact that the sets are not being fully utilized. More interestingly, we can see that the performance of the MESI protocol is able to slightly beat out the performance of the MOESI protocol in the \textit{bodytrack} benchmark at some points.
+
+As seen in Figure \ref{fig:associativity}, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. We can also see that the performance gained from increasing associativity flattens out in all 3 benchmarks for all the protocols. This is most likely due to the fact that the sets are not being fully utilized, thus there is diminishing returns from increasing the associativity.
+
+\begin{table}[htb!]
+  \centering
+  \caption{Amount of data traffic in bytes on the bus in MESI and MOESI protocols as associativity increases}
+  \label{tab:datatraffic}
+  \begin{tabular}{r|r|r}
+    \textbf{Associativity} & \textbf{MOESI} & \textbf{MESI} \\ \hline
+    1                      & 21,421,632     & 21,420,672    \\
+    2                      & 18,001,696     & 18,000,992    \\
+    4                      & 17,203,296     & 17,199,904    \\
+    8                      & 16,968,896     & 16,967,200    \\
+    16                     & 16,978,272     & 16,975,296    \\
+    32                     & 17,053,344     & 17,057,184    \\
+    64                     & 17,152,480     & 17,057,184    \\
+    128                    & 17,205,280     & 17,202,208    \\
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htb!]
+  \centering
+  \includegraphics[width=0.5\textwidth]{maxwaitingforbus}
+  \caption{Plot of number of cycles spent waiting for access to bus by the processor with the highest number of execution cycles against associativity with 32 bytes block size and 4 kilobytes cache size.}
+  \label{fig:maxwaitingforbus}
+\end{figure}
+
+More interestingly, we can see that the MESI protocol is able to outperform the MOESI protocol in the \textit{bodytrack} benchmark noticeably when associativity is 1, 4 and 16.
+We try to first investigate this matter by looking at the amount of traffic in the bus (see Table~\ref{tab:datatraffic}), but MOESI actually consistently decreases the amount of data traffic on the bus in the \textit{bodytrack} benchmark.
+Our hypothesis is that MOESI's worse performance is caused by the increased contention in the bus.
+To check whether our hypothesis is correct, we log the number of cycles spent waiting for access to the bus by the processor with the highest number of execution cycles (as this processor is the bottleneck).
+From the results, we can indeed see the correlation of the time spent waiting for access to the bus in Figure~\ref{fig:maxwaitingforbus} and the total execution time in Figure~\ref{fig:associativity:bodytrack}
+Thus, although MOESI decreases the amount of traffic on the bus, the bus traffic is more concentrated at some points in time, increasing the bus contention.
 
 \subsection{Concluding statements}
-From the experiments conducted, we have shown that the MESI protocol and its variants are able to outperform the Dragon protocol across all the given benchmarks. While there are most certainly benchmarks that favour the Dragon protocol that were not tested here, these benchmarks would need to exhibit specific properties such as an interleaving of reads and writes which may not be applicable to more general applications.
+From the experiments conducted, we have shown that the MESI protocol and its variants are able to outperform the Dragon protocol across all the given benchmarks. While there are most certainly benchmarks that favour the Dragon protocol that were not tested here, these benchmarks would need to exhibit specific properties such as an interleaving of reads and writes across many different processors which may not be applicable to more general applications. We can also see that in general, MOESI performs slightly better than MESI. There are specific cases as explained in Subsubsection~\ref{subsub:associativity} where MESI can outperform MOESI, but this does not happen too often.
 
-\clearpage
+These reasons are possibly why most modern architectures make use of MESI and optimised protocols derived from it such as MOESI and MESIF rather than update-based cache coherency protocols. For example, AMD's AMD64 processors use MOESI \cite{devices2006amd64}, ARM Cortex-A57 uses MESI in its L1 cache and MOESI in its L2 cache \cite{holdingsarm}, while Intel uses MESIF in its 64-bit processors \cite{thomadakis2011architecture}.
+
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{report}
 \end{document}
