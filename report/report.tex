@@ -286,15 +286,15 @@ The state transition diagram can be found in Figure~\ref{fig:moesi}. For any giv
 \end{table}
 
 \subsection{Dragon Protocol}
-The Dragon Protocol is a write-update based cache coherence protocol that was first introduced along with the Dragon Multi-processor \cite{atkinson1987dragon}. Unlike write-invalidate protocols like MESI, Dragon updates shared cache lines at each write instead of just invalidating them. 
+The Dragon Protocol is a write-update based cache coherence protocol that was first introduced along with the Dragon Multi-processor \cite{atkinson1987dragon}. Unlike write-invalidate protocols like MESI, Dragon updates shared cache lines at each write instead of just invalidating them.
 
-\begin{figure}[!htb]
+\begin{figure}[htb!]
   \centering
   \includegraphics[width=0.8\textwidth]{dragon}
   \caption{State Diagram for the Dragon Protocol}
 \end{figure}
 
-\begin{table}[!htb]
+\begin{table}[htb!]
   \centering
   \caption{Permitted States for a Pair of Caches in Dragon Protocol}
   \label{tab:dragon}
@@ -336,22 +336,22 @@ The memory in our Dragon Protocol simulator snoops on the bus and will do one of
 \section{Quantitative Analysis}
 \subsection{Workload Analysis}
 Before analysing the results of our simulations, it is important to first briefly analyse the nature of the workloads we used in these experiments. The workloads used are from the PARSEC benchmark suite which is used for benchmarking the performance of multi-core processors \cite{bienia2008parsec}. The table below provides a summary of the key characteristics of the benchmarks.
-\begin{table}[!htb]
-    \centering
-    \label{tab:benchmarks}
-    \begin{tabular}{|c|c|c|c|l}
-        \cline{1-4}
-        \multicolumn{1}{|l|}{\textbf{Benchmark}} & \multicolumn{1}{l|}{\textbf{Granularity}} & \multicolumn{1}{l|}{\textbf{Data Sharing}} & \multicolumn{1}{l|}{\textbf{Data Exchange}} &  \\ \cline{1-4}
-        \textit{blackscholes} & Coarse & low & low &  \\ \cline{1-4}
-        \textit{bodytrack} & Medium & high & medium &  \\ \cline{1-4}
-        \textit{fluidanimate} & Fine & low & medium &  \\ \cline{1-4}
-    \end{tabular}
-    \caption{Key characteristics of the benchmarks as taken from\cite{bienia2008parsec}}
+\begin{table}[htb!]
+  \centering
+  \caption{Key characteristics of the benchmarks \cite{bienia2008parsec}}
+  \label{tab:benchmarks}
+  \begin{tabular}{|c|c|c|c|l}
+    \cline{1-4}
+    \multicolumn{1}{|l|}{\textbf{Benchmark}} & \multicolumn{1}{l|}{\textbf{Granularity}} & \multicolumn{1}{l|}{\textbf{Data Sharing}} & \multicolumn{1}{l|}{\textbf{Data Exchange}} & \\ \cline{1-4}
+    \textit{blackscholes}                    & Coarse                                    & low                                        & low                                         & \\ \cline{1-4}
+    \textit{bodytrack}                       & Medium                                    & high                                       & medium                                      & \\ \cline{1-4}
+    \textit{fluidanimate}                    & Fine                                      & low                                        & medium                                      & \\ \cline{1-4}
+  \end{tabular}
 \end{table}
 \begin{itemize}
-    \item \textit{blackscholes} - This benchmark consists of a main thread which spawns several worker threads that act on independent sections of data. As a result the majority of shared memory among the threads is between the main thread and the worker threads. Since the worker threads process data independently of each other, there is little communication between the threads.
-    \item \textit{bodytrack} - This benchmark has multiple threads working on the same set of data. 
-    \item \textit{fluidanimate} - This benchmark has multiple threads working on the same set of data. Due to the nature of the workload, there is a significant amount of inter-thread communication which scales with the number of threads \cite{bienia2008parsec}
+  \item \textit{blackscholes} - This benchmark consists of a main thread which spawns several worker threads that act on independent sections of data. As a result the majority of shared memory among the threads is between the main thread and the worker threads. Since the worker threads process data independently of each other, there is little communication between the threads.
+  \item \textit{bodytrack} - This benchmark has multiple threads working on the same set of data.
+  \item \textit{fluidanimate} - This benchmark has multiple threads working on the same set of data. Due to the nature of the workload, there is a significant amount of inter-thread communication which scales with the number of threads \cite{bienia2008parsec}
 \end{itemize}
 
 \subsection{Experimental Results \& Analysis}
@@ -374,8 +374,8 @@ We ran our simulations with varying cache sizes, block sizes and set associativi
   \caption{Plot of total execution cycles against cache size with 2-way associative cache with 32 bytes block size, Note that the line for the MESI protocols may be difficult to see as it almost completely overlaps with the MOESI protocol.}
   \label{fig:cachesize}
 \end{figure}
-As seen in Figure \ref{fig:cachesize} above, the MOESI/MESI protocol outperforms the Dragon protocol in all 3 benchmarks regardless of cache size. We believe that the reason for this is due to the unnecessary write updates on cache lines that are not read again after they were first cached. This is especially apparent in the \textit{blackscholes} benchmark there is little shared memory. This problem is exacerbated as the cache size increases due to more of such entries remaining in the cache for longer periods of time before they are evicted. We can observe this effect in the \textit{blackscholes} benchmark where the penalty of these unnecessary updates is dominant over the benefit gained from a larger cache size past 8kB. This causes the number of cycles taken to execute the application to increase after that point.
-The \textit{fluidanimate} shows much more promising results for the Dragon protocol since there is a high amount of inter-thread communication in the workload. However, we observe that the MOESI/MESI protocol still performs slightly better. One reason for this could potentially attributed to multiple sequential write instructions being executed before a read takes place which is also another source of unnecessary write updates. 
+As seen in Figure \ref{fig:cachesize}, the MOESI/MESI protocol outperforms the Dragon protocol in all 3 benchmarks regardless of cache size. We believe that the reason for this is due to the unnecessary write updates on cache lines that are not read again after they were first cached. This is especially apparent in the \textit{blackscholes} benchmark there is little shared memory. This problem is exacerbated as the cache size increases due to more of such entries remaining in the cache for longer periods of time before they are evicted. We can observe this effect in the \textit{blackscholes} benchmark where the penalty of these unnecessary updates is dominant over the benefit gained from a larger cache size past 8kB. This causes the number of cycles taken to execute the application to increase after that point.
+The \textit{fluidanimate} shows much more promising results for the Dragon protocol since there is a high amount of inter-thread communication in the workload. However, we observe that the MOESI/MESI protocol still performs slightly better. One reason for this could potentially attributed to multiple sequential write instructions being executed before a read takes place which is also another source of unnecessary write updates.
 
 \subsubsection{Block size}
 \begin{figure}[htb!]
@@ -395,7 +395,7 @@ The \textit{fluidanimate} shows much more promising results for the Dragon proto
   \caption{Plot of total execution cycles against block size with 2-way associative cache with 4 kilobytes cache size}
   \label{fig:blocksize}
 \end{figure}
-As seen in Figure \ref{fig:blocksize} above, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. One interesting phenomenon that is observed here is how performance sharply drops past a certain block size in all 3 benchmarks. In the MOESI/MESI protocol, this is most probably due to the increased number of invalidation misses as an invalidation causes the entire cache block to be invalidated which could have contained data that would be needed in the next few instructions. In the Dragon protocol, this can be attributed to a higher overhead associated with updating the cache blocks for each write update.
+As seen in Figure \ref{fig:blocksize}, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. One interesting phenomenon that is observed here is how performance sharply drops past a certain block size in all 3 benchmarks. In the MOESI/MESI protocol, this is most probably due to the increased number of invalidation misses as an invalidation causes the entire cache block to be invalidated which could have contained data that would be needed in the next few instructions. In the Dragon protocol, this can be attributed to a higher overhead associated with updating the cache blocks for each write update.
 
 \subsubsection{Associativity}
 \begin{figure}[htb!]
@@ -415,10 +415,10 @@ As seen in Figure \ref{fig:blocksize} above, the MOESI/MESI protocol once again 
   \caption{Plot of total execution cycles against associativity with 32 bytes block size with 4 kilobytes cache size}
   \label{fig:associativity}
 \end{figure}
-As seen in Figure \ref{fig:associativity} above, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. We can also see that the performance gained from increasing associativity flattens out in all 3 benchmarks for all the protocols. This is most likely due to the fact that the sets are not being fully utilized. More intrestingly, we can see that the performance of the MESI protocol is able to slightly beat out the performance of the MOESI protocol in the \textit{bodytrack} benchmark at some points.
+As seen in Figure \ref{fig:associativity}, the MOESI/MESI protocol once again out performs the Dragon protocol in all 3 benchmarks regardless of block size which can be attributed to the same reasons stated above. We can also see that the performance gained from increasing associativity flattens out in all 3 benchmarks for all the protocols. This is most likely due to the fact that the sets are not being fully utilized. More interestingly, we can see that the performance of the MESI protocol is able to slightly beat out the performance of the MOESI protocol in the \textit{bodytrack} benchmark at some points.
 
 \subsection{Concluding statements}
-From the experiments conducted, we have shown that the MESI protocol and its variants are able to outperform the Dragon protocol across all the given benchmarks. While there are most certainly benchmarks that favour the Dragon protocol that were not tested here, these benchmarks would need to exhibit specific properties such as an interleaving of reads and writes which may not be applicable to more general applications. 
+From the experiments conducted, we have shown that the MESI protocol and its variants are able to outperform the Dragon protocol across all the given benchmarks. While there are most certainly benchmarks that favour the Dragon protocol that were not tested here, these benchmarks would need to exhibit specific properties such as an interleaving of reads and writes which may not be applicable to more general applications.
 
 \clearpage
 \bibliographystyle{ACM-Reference-Format}
