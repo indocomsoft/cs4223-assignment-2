@@ -428,15 +428,15 @@ As seen in Figure \ref{fig:associativity}, the MOESI/MESI protocol once again ou
   \caption{Amount of data traffic in bytes on the bus in MESI and MOESI protocols as associativity increases}
   \label{tab:datatraffic}
   \begin{tabular}{r|r|r}
-    \textbf{Associativity} & \textbf{MOESI} & \textbf{MESI} \\ \hline
-    1                      & 21,421,632     & 21,420,672    \\
-    2                      & 18,001,696     & 18,000,992    \\
-    4                      & 17,203,296     & 17,199,904    \\
-    8                      & 16,968,896     & 16,967,200    \\
-    16                     & 16,978,272     & 16,975,296    \\
-    32                     & 17,053,344     & 17,057,184    \\
-    64                     & 17,152,480     & 17,057,184    \\
-    128                    & 17,205,280     & 17,202,208    \\
+    \textbf{Associativity} & \textbf{MESI} & \textbf{MOESI} \\ \hline
+    1                      & 21,421,632    & 21,420,672     \\
+    2                      & 18,001,696    & 18,000,992     \\
+    4                      & 17,203,296    & 17,199,904     \\
+    8                      & 16,968,896    & 16,967,200     \\
+    16                     & 16,978,272    & 16,975,296     \\
+    32                     & 17,053,344    & 17,057,184     \\
+    64                     & 17,152,480    & 17,057,184     \\
+    128                    & 17,205,280    & 17,202,208     \\
   \end{tabular}
 \end{table}
 
@@ -448,7 +448,7 @@ As seen in Figure \ref{fig:associativity}, the MOESI/MESI protocol once again ou
 \end{figure}
 
 More interestingly, we can see that the MESI protocol is able to outperform the MOESI protocol in the \textit{bodytrack} benchmark noticeably when associativity is 1, 4 and 16.
-We try to first investigate this matter by looking at the amount of traffic in the bus (see Table~\ref{tab:datatraffic}), but MOESI actually consistently decreases the amount of data traffic on the bus in the \textit{bodytrack} benchmark.
+We try to first investigate this matter by looking at the amount of traffic in the bus (see Table~\ref{tab:datatraffic}), but MOESI in general decreases the amount of data traffic on the bus in the \textit{bodytrack} benchmark.
 Our hypothesis is that MOESI's worse performance is caused by the increased contention in the bus.
 To check whether our hypothesis is correct, we log the number of cycles spent waiting for access to the bus by the processor with the highest number of execution cycles (as this processor is the bottleneck).
 From the results, we can indeed see the correlation of the time spent waiting for access to the bus in Figure~\ref{fig:maxwaitingforbus} and the total execution time in Figure~\ref{fig:associativity:bodytrack}
