@@ -1,4 +1,4 @@
-
+*.jar
 # Created by https://www.gitignore.io/api/scala,bazel,macos,intellij
 # Edit at https://www.gitignore.io/?templates=scala,bazel,macos,intellij
 
