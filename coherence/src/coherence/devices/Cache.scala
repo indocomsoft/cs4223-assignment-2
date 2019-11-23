@@ -79,8 +79,10 @@ abstract class Cache[State, Message, Reply](
   override def cycle(): Unit = {
     currentCycle += 1
     state match {
-      case CacheState.WaitingForBus(_, _) => timeWaitingForBus += 1
-      case _                              => ()
+      case CacheState.WaitingForBus(_, _) |
+          CacheState.EvictWaitingForBus(_, _, _) =>
+        timeWaitingForBus += 1
+      case _ => ()
     }
     state match {
       case CacheState.WaitingForResult(sender, op, finishedCycle)
