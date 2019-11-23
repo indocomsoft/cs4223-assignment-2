@@ -106,5 +106,9 @@ class Simulator(sources: List[Source],
         s"- $cache: numO = ${cache.stats.asInstanceOf[CacheStatistics[State]].numO}"
       )
     }
+    println("======")
+    caches.foreach { cache =>
+      println(s"- $cache: timeWaitingForBus = ${cache.timeWaitingForBus}")
+    }
   }
 }

@@ -99,6 +99,10 @@ class Simulator(sources: List[Source],
         s"- $cache: numPrivateAccess = ${cache.stats.numPrivateAccess}, numSharedAccess = ${cache.stats.numSharedAccess}"
       )
     }
+    println("======")
+    caches.foreach { cache =>
+      println(s"- $cache: timeWaitingForBus = ${cache.timeWaitingForBus}")
+    }
 
   }
 }

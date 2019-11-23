@@ -18,6 +18,8 @@ abstract class Cache[State, Message, Reply](
 ) extends Device
     with BusDelegate[Message, Reply] {
 
+  var timeWaitingForBus: Long = 0
+
   sealed trait CacheState
   sealed trait ActiveCacheState extends CacheState {
     val sender: CacheDelegate
@@ -76,6 +78,10 @@ abstract class Cache[State, Message, Reply](
 
   override def cycle(): Unit = {
     currentCycle += 1
+    state match {
+      case CacheState.WaitingForBus(_, _) => timeWaitingForBus += 1
+      case _                              => ()
+    }
     state match {
       case CacheState.WaitingForResult(sender, op, finishedCycle)
           if (finishedCycle == currentCycle) =>
