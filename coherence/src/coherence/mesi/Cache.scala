@@ -34,7 +34,7 @@ class Cache(id: Int,
       case None =>
         state = CacheState.WaitingForBus(sender, op)
         bus.requestAccess(this)
-      case Some((tag, CacheLine(State.M))) =>
+      case Some((tag, CacheLine(State.M) | CacheLine(State.O))) =>
         val address = Address(tag, setIndex)
         println_debug(s"$this: Evicting $address requires flush")
         state = CacheState.EvictWaitingForBus(address, sender, op)
@@ -81,7 +81,9 @@ class Cache(id: Int,
                 sets(setIndex).update(tag, CacheLine(State.M))
                 state =
                   CacheState.WaitingForResult(sender, op, currentCycle + 1)
-              case Some(CacheLine(State.I)) | Some(CacheLine(State.S)) =>
+              case Some(
+                  CacheLine(State.I) | CacheLine(State.S) | CacheLine(State.O)
+                  ) =>
                 state = CacheState.WaitingForBus(sender, op)
                 bus.requestAccess(this)
             }
@@ -105,7 +107,7 @@ class Cache(id: Int,
           case CacheOp.Store(_) =>
             val Address(tag, setIndex) = address
             sets(setIndex).immutableGet(tag) match {
-              case Some(CacheLine(State.S)) =>
+              case Some(CacheLine(State.S) | CacheLine(State.O)) =>
                 state = CacheState.WaitingForBusPropagation(sender, op)
                 MessageMetadata(Message.BusUpgr(), address)
               case None | Some(CacheLine(State.I)) =>
@@ -138,7 +140,7 @@ class Cache(id: Int,
       (state, result, message) match {
         case (
             CacheState.WaitingForBusPropagation(cacheDelegate, op),
-            Some(CacheLine(State.S)),
+            Some(CacheLine(State.S) | CacheLine(State.O)),
             Message.BusUpgr()
             ) =>
           bus.relinquishAccess(this)
@@ -152,8 +154,8 @@ class Cache(id: Int,
         case Some(CacheLine(State.M)) =>
           message match {
             case Message.BusRd() =>
-              sets(setIndex).update(tag, CacheLine(State.S))
-              maybeReply = Some(Reply.Flush())
+              sets(setIndex).update(tag, CacheLine(State.O))
+              maybeReply = Some(Reply.FlushOpt())
             case Message.BusRdX() =>
               sets(setIndex).update(tag, CacheLine(State.I))
               maybeReply = Some(Reply.Flush())
@@ -177,7 +179,7 @@ class Cache(id: Int,
               )
             case Message.Flush() => ()
           }
-        case Some(CacheLine(State.S)) =>
+        case Some(CacheLine(State.S) | CacheLine(State.O)) =>
           message match {
             case Message.BusRd() =>
               maybeReply = Some(Reply.FlushOpt())
